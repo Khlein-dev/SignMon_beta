@@ -15,13 +15,18 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} /> */}
-        {/* <Stack.Screen name="(pets)" options={{ headerShown: false }} /> */}
-        {/* <Stack.Screen name="index" options={{ title: "Login", headerShown: false }} /> */}
-        <Stack.Screen name="Home" options={{ title: "Welcome to your Pet!", headerShown: false }} />
 
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        {/* TABS ROUTE */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+        {/* MODAL */}
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: 'modal', title: 'Modal' }}
+        />
+
       </Stack>
+
       <StatusBar style="auto" />
     </ThemeProvider>
   );

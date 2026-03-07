@@ -7,6 +7,8 @@ import {
     ImageBackground,
 } from "react-native";
 
+
+
 export default function Home() {
     const [bottomOpen, setBottomOpen] = useState(false);
     const [leftOpen, setLeftOpen] = useState(false);
