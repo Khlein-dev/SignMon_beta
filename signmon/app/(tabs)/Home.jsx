@@ -7,6 +7,10 @@ import {
     ImageBackground,
 } from "react-native";
 
+import BottomPanel from "../../components/BottomPanel";
+import LeftPanel from "../../components/LeftPanel";
+import RightPanel from "../../components/RightPanel";
+
 
 
 export default function Home() {
@@ -64,29 +68,9 @@ function Pet() {
     );
 }
 
-function LeftPanel() {
-    return (
-        <View style={styles.leftPanel}>
-            <Text style={styles.panelText}>LEFT PANEL</Text>
-        </View>
-    );
-}
 
-function RightPanel() {
-    return (
-        <View style={styles.rightPanel}>
-            <Text style={styles.panelText}>RIGHT PANEL</Text>
-        </View>
-    );
-}
 
-function BottomPanel() {
-    return (
-        <View style={styles.bottomPanel}>
-            <Text style={styles.panelText}>BOTTOM PANEL</Text>
-        </View>
-    );
-}
+
 
 /* ---------------- STYLES ---------------- */
 
@@ -151,26 +135,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 
-    rightPanel: {
-        position: "absolute",
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: 200,
-        backgroundColor: "#222",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-
-    bottomPanel: {
-        position: "absolute",
-        bottom: 0,
-        width: "100%",
-        height: 200,
-        backgroundColor: "#222",
-        justifyContent: "center",
-        alignItems: "center",
-    },
 
     panelText: {
         color: "white",
