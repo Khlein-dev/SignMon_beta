@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-export default function BottomPanel() {
+export default function LeftPanel() {
     return (
         <View style={styles.leftPanel}>
             <Text style={styles.panelText}>LEFT PANEL</Text>
