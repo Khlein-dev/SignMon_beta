@@ -1,24 +1,24 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 
 export default function RightPanel() {
 
     return (
         <View style={styles.rightPanel}>
 
-            <PanelItem text="Cowboy Hat" />
-            <PanelItem text="Wizard Hat" />
-            <PanelItem text="Top Hat" />
+            <PanelItem text="Cowboy Hat" pic={require("../assets/images/cowboy1.png")}/>
+            <PanelItem text="Santa Hat" pic={require("../assets/images/santa2.png")}/>
+            <PanelItem text="Black Hat" pic={require("../assets/images/blackhat1.png")}/>
 
         </View>
     );
 }
 
-function PanelItem({ text }) {
+function PanelItem({ text, pic }) {
     return (
         <View style={styles.itemRow}>
             <View style={styles.imagePlaceholder}>
-                <Text>IMG</Text>
+                <Image source={pic} style={{ width: 100, height: 100 }} resizeMode="contain" />
             </View>
 
             <Text style={styles.itemText}>{text}</Text>
@@ -33,24 +33,23 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         bottom: 0,
-        width: 220,
-        backgroundColor: "#222",
+        width: 320,
+        backgroundColor: "#073167",
         padding: 20,
     },
 
     itemRow: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#333",
+        backgroundColor: "#041a36",
         padding: 10,
         borderRadius: 10,
         marginBottom: 12,
     },
 
     imagePlaceholder: {
-        width: 40,
-        height: 40,
-        backgroundColor: "#aaa",
+        width: 100,
+        height: 100,
         justifyContent: "center",
         alignItems: "center",
         marginRight: 12,
