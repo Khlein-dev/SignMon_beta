@@ -16,8 +16,6 @@ export default function Stats() {
             {/* LEVEL BAR */}
             <View style={styles.levelSection}>
 
-                <Text style={styles.label}>LEVEL</Text>
-
                 <View style={styles.barBackground}>
                     <View
                         style={[
@@ -37,32 +35,31 @@ const styles = StyleSheet.create({
 
     container: {
         position: "absolute",
-        top: 50,
+        top: 70,
         left: 20,
         right: 20,
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#0d1b2a", // dark blue background
         padding: 12,
         borderRadius: 12,
     },
 
     levelCircle: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: "#1b263b",
+        width: 100,
+        height: 100,
+        borderRadius: 35,
+        backgroundColor: "#8847a4",
         justifyContent: "center",
         alignItems: "center",
         marginRight: 12,
-        borderWidth: 2,
-        borderColor: "#e0e1dd",
+        borderWidth: 6,
+        borderColor: "#000000",
     },
 
     levelText: {
-        color: "white",
+        color: "black",
         fontWeight: "bold",
-        fontSize: 16,
+        fontSize: 60,
     },
 
     levelSection: {
@@ -77,16 +74,18 @@ const styles = StyleSheet.create({
 
     barBackground: {
         width: "100%",
-        height: 10,
-        backgroundColor: "#415a77",
-        borderRadius: 6,
+        height: 40,
+        backgroundColor: "#49175f",
+        borderRadius: 50,
         overflow: "hidden",
+        borderWidth: 6,
+        borderColor: "#000000"
     },
 
     barFill: {
         height: "100%",
-        backgroundColor: "#4cc9f0",
-        borderRadius: 6,
+        backgroundColor: "#8847a4",
+        borderRadius: 50,
     },
 
 });
