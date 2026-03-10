@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated, Image } from "react-native";
 
-export default function Pet() {
+export default function Pet({ hat, dress, necklace }) {
 
     const jumpAnim = useRef(new Animated.Value(0)).current;
 
@@ -30,20 +30,38 @@ export default function Pet() {
 
     }, []);
 
-    return (
-        <Animated.View
-            style={[
-                styles.petContainer,
-                { transform: [{ translateY: jumpAnim }] }
-            ]}
-        >
+return (
+    <Animated.View
+        style={[
+            styles.petContainer,
+            { transform: [{ translateY: jumpAnim }] }
+        ]}
+    >
+
+        <View style={styles.petWrapper}>
+
             <Image
                 source={require("../assets/images/pet.png")}
                 style={styles.petImage}
                 resizeMode="contain"
             />
-        </Animated.View>
-    );
+
+            {hat && (
+                <Image source={hat} style={styles.hat} resizeMode="contain" />
+            )}
+
+            {dress && (
+                <Image source={dress} style={styles.dress} resizeMode="contain" />
+            )}
+
+            {necklace && (
+                <Image source={necklace} style={styles.necklace} resizeMode="contain" />
+            )}
+
+        </View>
+
+    </Animated.View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -56,8 +74,36 @@ const styles = StyleSheet.create({
     },
 
     petImage: {
-        width: 300,
-        height: 300,
+        width: 350,
+        height: 350,
     },
 
+    // 
+
+    petWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+},
+
+hat: {
+    position: "absolute",
+    top: -20,
+    width: 160,
+    height: 160,
+},
+
+dress: {
+    position: "absolute",
+    top: 120,
+    width: 200,
+    height: 200,
+},
+
+necklace: {
+    position: "absolute",
+    top: 140,
+    width: 120,
+    height: 120,
+},
 });
