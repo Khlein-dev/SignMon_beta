@@ -18,6 +18,8 @@ export default function RootLayout() {
 
         {/* TABS ROUTE */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="Home" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
 
         {/* MODAL */}
         <Stack.Screen
