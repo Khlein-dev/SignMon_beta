@@ -64,6 +64,16 @@ export default function Home() {
         return () => clearInterval(interval);
     }, [jumpAnim]);
 
+    const handleBottomNavigate = (route) => {
+        setOpenPanel(null);
+
+        // Placeholder navigation
+        console.log("Navigate to:", route);
+
+        // later replace with:
+        // navigation.navigate(route);
+    };
+
     return (
         <ImageBackground
             source={require("../../assets/images/background.jpg")}
@@ -92,11 +102,7 @@ export default function Home() {
                 activeOpacity={0.8}
             >
                 <Text style={styles.buttonText}>
-                    <MaterialCommunityIcons
-                        name="hanger"
-                        size={50}
-                        color="black"
-                    />
+                    <MaterialCommunityIcons name="hanger" size={50} color="black" />
                 </Text>
             </TouchableOpacity>
 
@@ -116,13 +122,10 @@ export default function Home() {
             </Animated.View>
 
             {/* LEFT PANEL MODAL */}
-            <LeftPanel
-                visible={openPanel === "left"}
-                onClose={closePanels}
-            />
+            <LeftPanel visible={openPanel === "left"} onClose={closePanels} />
 
-            {/* BACKDROP - only for right and bottom */}
-            {(openPanel === "right" || openPanel === "bottom") && (
+            {/* BACKDROP - only for right */}
+            {openPanel === "right" && (
                 <Pressable style={styles.backdrop} onPress={closePanels} />
             )}
 
@@ -140,13 +143,11 @@ export default function Home() {
             )}
 
             {/* BOTTOM PANEL */}
-            {openPanel === "bottom" && (
-                <View style={styles.panelWrapper} pointerEvents="box-none">
-                    <View style={styles.panelContent}>
-                        <BottomPanel />
-                    </View>
-                </View>
-            )}
+            <BottomPanel
+                visible={openPanel === "bottom"}
+                onClose={closePanels}
+                onNavigate={handleBottomNavigate}
+            />
         </ImageBackground>
     );
 }
