@@ -9,23 +9,24 @@ import {
     View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-export default function BottomPanel({ visible, onClose, onNavigate }) {
+export default function BottomPanel({ visible, onClose }) {
     const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const [isMounted, setIsMounted] = useState(visible);
 
     const menuItems = useMemo(
         () => [
-            { label: "Alphabet", route: "lesson 1" },
-            { label: "Numero", route: "lesson 2" },
-            { label: "Kulay", route: "lesson 3" },
-            { label: "Pamilya", route: "lesson 4" },
-            { label: "Mga Araw", route: "lesson 5" },
-            { label: "Buwan", route: "lesson 6" },
-            { label: "Kilos", route: "lesson 7" },
-            { label: "Pagbati", route: "lesson 8" },
+            { label: "Alphabet", route: "/lessons/lesson1" },
+            { label: "Numero", route: "/lessons/lesson2" },
+            { label: "Kulay", route: "/lessons/lesson3" },
+            { label: "Pamilya", route: "/lessons/lesson4" },
+            { label: "Mga Araw", route: "/lessons/lesson5" },
+            { label: "Buwan", route: "/lessons/lesson6" },
+            { label: "Kilos", route: "/lessons/lesson7" },
+            { label: "Pagbati", route: "/lessons/lesson8" },
         ],
         []
     );
@@ -52,7 +53,7 @@ export default function BottomPanel({ visible, onClose, onNavigate }) {
                 }
             });
         }
-    }, [visible]);
+    }, [visible, isMounted, translateY]);
 
     const handleClose = () => {
         Animated.timing(translateY, {
@@ -69,11 +70,11 @@ export default function BottomPanel({ visible, onClose, onNavigate }) {
     };
 
     const handlePressItem = (route) => {
-        if (onNavigate) {
-            onNavigate(route);
-        } else {
-            console.log("Navigate to:", route);
-        }
+        handleClose();
+
+        setTimeout(() => {
+            router.push(route);
+        }, 260);
     };
 
     if (!isMounted) return null;
@@ -87,7 +88,6 @@ export default function BottomPanel({ visible, onClose, onNavigate }) {
                 },
             ]}
         >
-            {/* Gradient Background */}
             <LinearGradient
                 colors={["#1a437a", "#073167", "#041833"]}
                 start={{ x: 0.5, y: 0 }}
@@ -104,7 +104,7 @@ export default function BottomPanel({ visible, onClose, onNavigate }) {
             </View>
 
             <View style={styles.grid}>
-                {menuItems.map((item) => (
+                {menuItems.map((item, index) => (
                     <Pressable
                         key={item.route}
                         style={({ pressed }) => [
@@ -113,7 +113,9 @@ export default function BottomPanel({ visible, onClose, onNavigate }) {
                         ]}
                         onPress={() => handlePressItem(item.route)}
                     >
-                        <Text style={styles.gridButtonSubtext}>{item.route}</Text>
+                        <Text style={styles.gridButtonSubtext}>
+                            Lesson {index + 1}
+                        </Text>
                         <Text style={styles.gridButtonText}>{item.label}</Text>
                     </Pressable>
                 ))}
@@ -160,10 +162,9 @@ const styles = StyleSheet.create({
     },
 
     closeButtonText: {
-        color: "white",
-        fontSize: 20,
-        fontWeight: "700",
-        lineHeight: 22,
+        color: "black",
+        fontSize: 30,
+        fontFamily: "HeyComic",
     },
 
     grid: {
