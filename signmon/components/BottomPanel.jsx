@@ -19,14 +19,14 @@ export default function BottomPanel({ visible, onClose }) {
 
     const menuItems = useMemo(
         () => [
-            { label: "Alphabet", route: "/lessons/lesson1" },
-            { label: "Numero", route: "/lessons/lesson2" },
-            { label: "Kulay", route: "/lessons/lesson3" },
-            { label: "Pamilya", route: "/lessons/lesson4" },
-            { label: "Mga Araw", route: "/lessons/lesson5" },
-            { label: "Buwan", route: "/lessons/lesson6" },
-            { label: "Kilos", route: "/lessons/lesson7" },
-            { label: "Pagbati", route: "/lessons/lesson8" },
+            { label: "Alpabeto A-N", route: "/lessons/lesson1" },
+            { label: "Alpabeto Ñ-Z", route: "/lessons/lesson2" },
+            { label: "Mga Numero", route: "/lessons/lesson3" },
+            { label: "Mga Kulay", route: "/lessons/lesson4" },
+            { label: "Ang Aking Pamilya", route: "/lessons/lesson5" },
+            { label: "Anong Araw Na?", route: "/lessons/lesson6" },
+            { label: "Ang Aking Kilos", route: "/lessons/lesson7" },
+            { label: "Gawain ko", route: "/lessons/lesson8" },
         ],
         []
     );
@@ -195,11 +195,16 @@ const styles = StyleSheet.create({
         fontSize: 25,
         fontFamily: "HeyComic",
         marginBottom: 4,
+        alignSelf: "center",
+        justifyContent: "center",
+
+
     },
 
     gridButtonSubtext: {
         color: "black",
         fontSize: 15,
         fontFamily: "HeyComic",
+
     },
 });
