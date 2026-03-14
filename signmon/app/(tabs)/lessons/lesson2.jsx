@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -10,31 +10,131 @@ import { router } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-export default function Lesson1() {
-    const player = useVideoPlayer(
-        require("../../../assets/images/videos/A-N/A.mp4"),
-        (player) => {
-            player.loop = false;
-        }
+export default function Lesson2() {
+    const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
+
+    const lessonVideos = useMemo(
+        () => [
+            {
+                letter: "Ñ",
+                source: require("../../../assets/images/videos/Ñ-Z/Ñ.mp4"),
+            },
+            {
+                letter: "Ng",
+                source: require("../../../assets/images/videos/Ñ-Z/Ng.mp4"),
+            },
+            {
+                letter: "O",
+                source: require("../../../assets/images/videos/Ñ-Z/O.mp4"),
+            },
+            {
+                letter: "P",
+                source: require("../../../assets/images/videos/Ñ-Z/P.mp4"),
+            },
+            {
+                letter: "Q",
+                source: require("../../../assets/images/videos/Ñ-Z/Q.mp4"),
+            },
+            {
+                letter: "R",
+                source: require("../../../assets/images/videos/Ñ-Z/R.mp4"),
+            },
+            {
+                letter: "S",
+                source: require("../../../assets/images/videos/Ñ-Z/S.mp4"),
+            },
+            {
+                letter: "T",
+                source: require("../../../assets/images/videos/Ñ-Z/T.mp4"),
+            },
+            {
+                letter: "U",
+                source: require("../../../assets/images/videos/Ñ-Z/U.mp4"),
+            },
+            {
+                letter: "V",
+                source: require("../../../assets/images/videos/Ñ-Z/V.mp4"),
+            },
+            {
+                letter: "W",
+                source: require("../../../assets/images/videos/Ñ-Z/W.mp4"),
+            },
+            {
+                letter: "X",
+                source: require("../../../assets/images/videos/Ñ-Z/X.mp4"),
+            },
+            {
+                letter: "Y",
+                source: require("../../../assets/images/videos/Ñ-Z/Y.mp4"),
+            },
+            {
+                letter: "Z",
+                source: require("../../../assets/images/videos/Ñ-Z/Z.mp4"),
+            },
+        ],
+        []
     );
 
+    const player = useVideoPlayer(null, (player) => {
+        player.loop = false;
+    });
+
+    useEffect(() => {
+        if (currentIndex >= 0 && currentIndex < lessonVideos.length) {
+            player.replace(lessonVideos[currentIndex].source);
+            player.play();
+        }
+    }, [currentIndex, lessonVideos, player]);
+
+    const isIntro = currentIndex === -1;
+    const isLastVideo = currentIndex === lessonVideos.length - 1;
+
     const handleReplay = () => {
-        player.currentTime = 0;
-        player.play();
+        if (!isIntro) {
+            player.currentTime = 0;
+            player.play();
+        }
     };
 
     const handleNext = () => {
-        router.push("/lessons/lesson2");
+        if (isIntro) {
+            setCurrentIndex(0);
+            return;
+        }
+
+        if (!isLastVideo) {
+            setCurrentIndex((prev) => prev + 1);
+        }
+    };
+
+    const handlePrevious = () => {
+        if (currentIndex === 0) {
+            setCurrentIndex(-1);
+            return;
+        }
+
+        if (currentIndex > 0) {
+            setCurrentIndex((prev) => prev - 1);
+        }
     };
 
     const handleExit = () => {
-        router.replace("/");
+        router.replace("/Home");
+    };
+
+    const handleQuiz = () => {
+        router.push("/lessons/quiz/quiz1");
+    };
+
+    const getTitle = () => {
+        if (isIntro) return "Lesson 2";
+        return `Lesson 2 - Letter ${lessonVideos[currentIndex].letter}`;
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Lesson 1</Text>
+                <Text style={styles.title}>{getTitle()}</Text>
 
                 <TouchableOpacity
                     style={styles.exitButton}
@@ -45,36 +145,113 @@ export default function Lesson1() {
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.videoCard}>
-                <VideoView
-                    style={styles.video}
-                    player={player}
-                    nativeControls
-                    allowsFullscreen
-                    allowsPictureInPicture
-                    contentFit="contain"
-                />
-            </View>
+            {isIntro ? (
+                <View style={styles.introCard}>
+                    <Text style={styles.introHeading}>Introduction</Text>
 
-            <View style={styles.buttonRow}>
-                <TouchableOpacity
-                    style={styles.replayButton}
-                    onPress={handleReplay}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons name="refresh" size={22} color="white" />
-                    <Text style={styles.buttonText}>Replay</Text>
-                </TouchableOpacity>
+                    <Text style={styles.introText}>
+                        In this lesson, you will learn the alphabet signs from
+                        A to N.
+                    </Text>
 
-                <TouchableOpacity
-                    style={styles.nextButton}
-                    onPress={handleNext}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.buttonText}>Next</Text>
-                    <Ionicons name="arrow-forward" size={22} color="white" />
-                </TouchableOpacity>
-            </View>
+                    <Text style={styles.introText}>
+                        Each step will show one letter video. Press Next to move
+                        to the next letter, or Replay if you want to watch the
+                        current sign again.
+                    </Text>
+
+                    <Text style={styles.introText}>
+                        We will begin with letter A.
+                    </Text>
+
+                    <TouchableOpacity
+                        style={styles.nextButtonSingle}
+                        onPress={handleNext}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.buttonText}>Start Lesson</Text>
+                        <Ionicons
+                            name="arrow-forward"
+                            size={22}
+                            color="white"
+                        />
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <>
+                    <View style={styles.progressCard}>
+                        <Text style={styles.progressText}>
+                            {lessonVideos[currentIndex].letter}
+                        </Text>
+                        <Text style={styles.progressSub}>
+                            ({currentIndex + 1}/{lessonVideos.length})
+                        </Text>
+                    </View>
+
+                    <View style={styles.videoCard}>
+                        <VideoView
+                            key={lessonVideos[currentIndex].letter}
+                            style={styles.video}
+                            player={player}
+                            contentFit="contain"
+                            allowsFullscreen={false}
+                            allowsPictureInPicture={false}
+                        />
+                    </View>
+
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={styles.previousButton}
+                            onPress={handlePrevious}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons
+                                name="arrow-back"
+                                size={22}
+                                color="white"
+                            />
+                            <Text style={styles.buttonText}>Previous</Text>
+                        </TouchableOpacity>
+
+                        {!isLastVideo ? (
+                            <TouchableOpacity
+                                style={styles.nextButton}
+                                onPress={handleNext}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.buttonText}>Next</Text>
+                                <Ionicons
+                                    name="arrow-forward"
+                                    size={22}
+                                    color="white"
+                                />
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.quizButton}
+                                onPress={handleQuiz}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons
+                                    name="help-circle"
+                                    size={22}
+                                    color="white"
+                                />
+                                <Text style={styles.buttonText}>Take Quiz</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    <TouchableOpacity
+                        style={styles.replayButtonFull}
+                        onPress={handleReplay}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="refresh" size={22} color="white" />
+                        <Text style={styles.buttonText}>Replay</Text>
+                    </TouchableOpacity>
+                </>
+            )}
         </SafeAreaView>
     );
 }
@@ -91,6 +268,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+        marginTop: 40,
         marginBottom: 20,
     },
 
@@ -111,15 +289,70 @@ const styles = StyleSheet.create({
         borderColor: "#000",
     },
 
+    introCard: {
+        backgroundColor: "#ffffff",
+        borderRadius: 22,
+        borderWidth: 4,
+        borderColor: "#000",
+        padding: 20,
+        marginTop: 20,
+    },
+
+    introHeading: {
+        fontSize: 28,
+        color: "#3b2a98",
+        fontFamily: "HeyComic",
+        marginBottom: 14,
+        textAlign: "center",
+    },
+
+    introText: {
+        fontSize: 18,
+        color: "#222",
+        marginBottom: 12,
+        lineHeight: 26,
+        fontFamily: "HeyComic",
+        textAlign: "center",
+    },
+
+    progressCard: {
+        width: 120,
+        height: 120,
+        alignSelf: "center",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#ffb703",
+        borderRadius: 16,
+        borderWidth: 3,
+        borderColor: "#000",
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        marginBottom: 14,
+    },
+
+    progressText: {
+        color: "#000",
+        fontSize: 70,
+        fontFamily: "HeyComic",
+    },
+
+    progressSub: {
+        color: "#000",
+        fontSize: 14,
+        fontFamily: "HeyComic",
+    },
+
     videoCard: {
+        alignSelf: "center",
         width: "100%",
-        aspectRatio: 16 / 9,
+        height: "50%",
+        aspectRatio: 9 / 16,
         backgroundColor: "#000",
         borderRadius: 22,
         borderWidth: 4,
         borderColor: "#000",
         overflow: "hidden",
-        marginBottom: 24,
+        marginBottom: 20,
     },
 
     video: {
@@ -130,10 +363,24 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         gap: 12,
+        marginBottom: 12,
     },
 
-    replayButton: {
+    previousButton: {
         flex: 1,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#e76f51",
+        borderRadius: 18,
+        borderWidth: 3,
+        borderColor: "#000",
+        paddingVertical: 16,
+        gap: 8,
+    },
+
+    replayButtonFull: {
+        marginTop: 12,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
@@ -147,6 +394,32 @@ const styles = StyleSheet.create({
 
     nextButton: {
         flex: 1,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#17a374",
+        borderRadius: 18,
+        borderWidth: 3,
+        borderColor: "#000",
+        paddingVertical: 16,
+        gap: 8,
+    },
+
+    quizButton: {
+        flex: 1,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#6a4c93",
+        borderRadius: 18,
+        borderWidth: 3,
+        borderColor: "#000",
+        paddingVertical: 16,
+        gap: 8,
+    },
+
+    nextButtonSingle: {
+        marginTop: 12,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
