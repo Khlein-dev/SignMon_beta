@@ -123,12 +123,12 @@ export default function Lesson2() {
     };
 
     const handleQuiz = () => {
-        router.push("/lessons/quiz/quiz1");
+        router.push("/lessons/quiz/quiz2");
     };
 
     const getTitle = () => {
-        if (isIntro) return "Lesson 2";
-        return `Lesson 2 - Letter ${lessonVideos[currentIndex].letter}`;
+        if (isIntro) return "Lesson 2 - Alpabeto";
+        return `Lesson 2 - Titik ${lessonVideos[currentIndex].letter}`;
     };
 
     return (
@@ -147,21 +147,22 @@ export default function Lesson2() {
 
             {isIntro ? (
                 <View style={styles.introCard}>
-                    <Text style={styles.introHeading}>Introduction</Text>
+                    <Text style={styles.introHeading}>FSL Part 2 (Ñ–Z)</Text>
 
                     <Text style={styles.introText}>
-                        In this lesson, you will learn the alphabet signs from
-                        A to N.
+                        Sa araling ito, matututuhan mo ang mga senyas ng alpabeto
+                        mula Ñ hanggang Z sa FSL.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Each step will show one letter video. Press Next to move
-                        to the next letter, or Replay if you want to watch the
-                        current sign again.
+                        Sa bawat hakbang, may isang video na magpapakita ng isang
+                        titik. Pindutin ang Susunod upang magpatuloy sa kasunod na
+                        titik, o Ulitin kung nais mong panoorin muli ang
+                        kasalukuyang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
-                        We will begin with letter A.
+                        Magsisimula tayo sa titik Ñ.
                     </Text>
 
                     <TouchableOpacity
@@ -169,7 +170,7 @@ export default function Lesson2() {
                         onPress={handleNext}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.buttonText}>Start Lesson</Text>
+                        <Text style={styles.buttonText}>Simulan ang Aralin</Text>
                         <Ionicons
                             name="arrow-forward"
                             size={22}
@@ -210,7 +211,7 @@ export default function Lesson2() {
                                 size={22}
                                 color="white"
                             />
-                            <Text style={styles.buttonText}>Previous</Text>
+                            <Text style={styles.buttonText}>Nakaraan</Text>
                         </TouchableOpacity>
 
                         {!isLastVideo ? (
@@ -219,7 +220,7 @@ export default function Lesson2() {
                                 onPress={handleNext}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.buttonText}>Next</Text>
+                                <Text style={styles.buttonText}>Susunod</Text>
                                 <Ionicons
                                     name="arrow-forward"
                                     size={22}
@@ -237,7 +238,7 @@ export default function Lesson2() {
                                     size={22}
                                     color="white"
                                 />
-                                <Text style={styles.buttonText}>Take Quiz</Text>
+                                <Text style={styles.buttonText}>Mag-Quiz</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -248,7 +249,7 @@ export default function Lesson2() {
                         activeOpacity={0.8}
                     >
                         <Ionicons name="refresh" size={22} color="white" />
-                        <Text style={styles.buttonText}>Replay</Text>
+                        <Text style={styles.buttonText}>Ulitin</Text>
                     </TouchableOpacity>
                 </>
             )}
