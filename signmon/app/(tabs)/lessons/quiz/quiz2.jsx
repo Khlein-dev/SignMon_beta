@@ -12,7 +12,7 @@ import { router } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const LETTERS = ["A", "B", "C", "D", "E"];
+const LETTERS = ["G", "R", "Y", "D", "H"];
 const API_URL = "http://192.168.1.2:8000/detect-sign";
 
 const DETECTION_INTERVAL = 650;

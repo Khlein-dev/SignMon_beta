@@ -23,9 +23,14 @@ export default function RootLayout() {
 
         <Stack.Screen name="lessons/lesson1" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/lesson2" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/lesson3" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/lesson4" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/lesson5" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/lesson6" options={{ headerShown: false }} />
 
       
         <Stack.Screen name="lessons/quiz/quiz1" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz2" options={{ headerShown: false }} />
 
         {/* MODAL */}
         <Stack.Screen
