@@ -119,7 +119,7 @@ export default function Lesson1() {
     };
 
     const handleExit = () => {
-        router.replace("/");
+        router.replace("/Home");
     };
 
     const handleQuiz = () => {
@@ -127,8 +127,8 @@ export default function Lesson1() {
     };
 
     const getTitle = () => {
-        if (isIntro) return "Lesson 1";
-        return `Lesson 1 - Letter ${lessonVideos[currentIndex].letter}`;
+        if (isIntro) return "Lesson 1 - Alpabeto";
+        return `Lesson 1 - Titik ${lessonVideos[currentIndex].letter}`;
     };
 
     return (
@@ -147,21 +147,22 @@ export default function Lesson1() {
 
             {isIntro ? (
                 <View style={styles.introCard}>
-                    <Text style={styles.introHeading}>Introduction</Text>
+                    <Text style={styles.introHeading}>FSL Part 1 (A–N)</Text>
 
                     <Text style={styles.introText}>
-                        In this lesson, you will learn the alphabet signs from
-                        A to N.
+                        Sa araling ito, matututuhan mo ang mga senyas ng alpabeto
+                        mula A hanggang N sa FSL.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Each step will show one letter video. Press Next to move
-                        to the next letter, or Replay if you want to watch the
-                        current sign again.
+                        Sa bawat hakbang, may isang video na magpapakita ng isang
+                        titik. Pindutin ang Susunod upang magpatuloy sa kasunod na
+                        titik, o Ulitin kung nais mong panoorin muli ang
+                        kasalukuyang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
-                        We will begin with letter A.
+                        Magsisimula tayo sa titik A.
                     </Text>
 
                     <TouchableOpacity
@@ -169,7 +170,7 @@ export default function Lesson1() {
                         onPress={handleNext}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.buttonText}>Start Lesson</Text>
+                        <Text style={styles.buttonText}>Simulan ang Aralin</Text>
                         <Ionicons
                             name="arrow-forward"
                             size={22}
@@ -210,7 +211,7 @@ export default function Lesson1() {
                                 size={22}
                                 color="white"
                             />
-                            <Text style={styles.buttonText}>Previous</Text>
+                            <Text style={styles.buttonText}>Nakaraan</Text>
                         </TouchableOpacity>
 
                         {!isLastVideo ? (
@@ -219,7 +220,7 @@ export default function Lesson1() {
                                 onPress={handleNext}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.buttonText}>Next</Text>
+                                <Text style={styles.buttonText}>Susunod</Text>
                                 <Ionicons
                                     name="arrow-forward"
                                     size={22}
@@ -237,7 +238,7 @@ export default function Lesson1() {
                                     size={22}
                                     color="white"
                                 />
-                                <Text style={styles.buttonText}>Take Quiz</Text>
+                                <Text style={styles.buttonText}>Mag-Quiz</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -248,7 +249,7 @@ export default function Lesson1() {
                         activeOpacity={0.8}
                     >
                         <Ionicons name="refresh" size={22} color="white" />
-                        <Text style={styles.buttonText}>Replay</Text>
+                        <Text style={styles.buttonText}>Ulitin</Text>
                     </TouchableOpacity>
                 </>
             )}
