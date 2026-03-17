@@ -33,6 +33,12 @@ export default function RootLayout() {
       
         <Stack.Screen name="lessons/quiz/quiz1" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/quiz/quiz2" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz3" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz4" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz5" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz6" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz7" options={{ headerShown: false }} />
+        <Stack.Screen name="lessons/quiz/quiz8" options={{ headerShown: false }} />
 
         {/* MODAL */}
         <Stack.Screen
