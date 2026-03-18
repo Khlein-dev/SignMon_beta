@@ -11,38 +11,38 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Audio } from "expo-av";
 
-export default function Lesson1() {
+export default function Lesson8() {
     const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
 
     const lessonVideos = useMemo(
         () => [
             {
-                letter: "A",
-                source: require("../../../assets/images/videos/A-N/A.mp4"),
+                day: "Linggo",
+                source: require("../../../assets/images/videos/Araw/Linggo.mp4"),
             },
             {
-                letter: "B",
-                source: require("../../../assets/images/videos/A-N/B.mp4"),
+                day: "Lunes",
+                source: require("../../../assets/images/videos/Araw/Lunes.mp4"),
             },
             {
-                letter: "C",
-                source: require("../../../assets/images/videos/A-N/C.mp4"),
+                day: "Martes",
+                source: require("../../../assets/images/videos/Araw/Martes.mp4"),
             },
             {
-                letter: "D",
-                source: require("../../../assets/images/videos/A-N/D.mp4"),
+                day: "Miyerkules",
+                source: require("../../../assets/images/videos/Araw/Miyerkules.mp4"),
             },
             {
-                letter: "E",
-                source: require("../../../assets/images/videos/A-N/E.mp4"),
+                day: "Huwebes",
+                source: require("../../../assets/images/videos/Araw/Huwebes.mp4"),
             },
             {
-                letter: "F",
-                source: require("../../../assets/images/videos/A-N/F.mp4"),
+                day: "Biyernes",
+                source: require("../../../assets/images/videos/Araw/Biyernes.mp4"),
             },
             {
-                letter: "G",
-                source: require("../../../assets/images/videos/A-N/G.mp4"),
+                day: "Sabado",
+                source: require("../../../assets/images/videos/Araw/Sabado.mp4"),
             },
         ],
         []
@@ -149,12 +149,12 @@ export default function Lesson1() {
 
     const handleQuiz = async () => {
         await playPop();
-        router.push("/lessons/quiz/quiz1");
+        router.push("/lessons/quiz/quiz8");
     };
 
     const getTitle = () => {
-        if (isIntro) return "Lesson 1 - Alpabeto";
-        return `Lesson 1 - Titik ${lessonVideos[currentIndex].letter}`;
+        if (isIntro) return "Lesson 8 - Mga Araw ng Linggo";
+        return `Lesson 8 - ${lessonVideos[currentIndex].day}`;
     };
 
     return (
@@ -174,23 +174,23 @@ export default function Lesson1() {
             {isIntro ? (
                 <View style={styles.introCard}>
                     <View style={styles.badge}>
-                        <Text style={styles.badgeText}>Lesson 1</Text>
+                        <Text style={styles.badgeText}>Lesson 8</Text>
                     </View>
 
-                    <Text style={styles.introHeading}>FSL Alpabeto (A–G)</Text>
+                    <Text style={styles.introHeading}>FSL Mga Araw ng Linggo</Text>
 
                     <Text style={styles.introText}>
-                        Sa araling ito, matututuhan mo ang mga senyas ng alpabeto mula A
-                        hanggang G sa FSL.
+                        Sa araling ito, matututuhan mo ang mga senyas ng mga araw ng linggo
+                        sa FSL.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Bawat video ay nagpapakita ng isang titik. Pindutin ang Susunod
-                        para sa kasunod na letra o Ulitin para mapanood muli ang senyas.
+                        Bawat video ay nagpapakita ng isang araw. Pindutin ang Susunod para
+                        sa kasunod na araw o Ulitin para mapanood muli ang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Handa ka na ba? Magsimula tayo sa titik A.
+                        Handa ka na ba? Magsimula tayo sa Linggo.
                     </Text>
 
                     <TouchableOpacity
@@ -205,10 +205,16 @@ export default function Lesson1() {
             ) : (
                 <>
                     <View style={styles.progressCard}>
-                        <Text style={styles.progressLabel}>Titik</Text>
-                        <Text style={styles.progressText}>
-                            {lessonVideos[currentIndex].letter}
+                        <Text style={styles.progressLabel}>Araw</Text>
+
+                        <Text
+                            style={styles.progressText}
+                            numberOfLines={2}
+                            adjustsFontSizeToFit
+                        >
+                            {lessonVideos[currentIndex].day}
                         </Text>
+
                         <Text style={styles.progressSub}>
                             {currentIndex + 1} / {lessonVideos.length}
                         </Text>
@@ -216,7 +222,7 @@ export default function Lesson1() {
 
                     <View style={styles.videoCard}>
                         <VideoView
-                            key={lessonVideos[currentIndex].letter}
+                            key={lessonVideos[currentIndex].day}
                             style={styles.video}
                             player={player}
                             contentFit="contain"
@@ -288,7 +294,7 @@ const styles = StyleSheet.create({
 
     title: {
         flex: 1,
-        fontSize: 30,
+        fontSize: 28,
         color: "#2D2A8C",
         fontFamily: "HeyComic",
         paddingRight: 12,
@@ -353,8 +359,8 @@ const styles = StyleSheet.create({
     },
 
     progressCard: {
-        width: 132,
-        height: 132,
+        width: 220,
+        minHeight: 132,
         alignSelf: "center",
         alignItems: "center",
         justifyContent: "center",
@@ -362,8 +368,8 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         borderWidth: 4,
         borderColor: "#5A3900",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
         marginBottom: 16,
     },
 
@@ -376,15 +382,17 @@ const styles = StyleSheet.create({
 
     progressText: {
         color: "#2F1B00",
-        fontSize: 64,
+        fontSize: 30,
         fontFamily: "HeyComic",
-        lineHeight: 70,
+        textAlign: "center",
+        lineHeight: 36,
     },
 
     progressSub: {
         color: "#5C3A00",
         fontSize: 14,
         fontFamily: "HeyComic",
+        marginTop: 4,
     },
 
     videoCard: {

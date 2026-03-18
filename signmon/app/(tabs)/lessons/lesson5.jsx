@@ -11,38 +11,50 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Audio } from "expo-av";
 
-export default function Lesson1() {
+export default function Lesson5() {
     const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
 
     const lessonVideos = useMemo(
         () => [
             {
-                letter: "A",
-                source: require("../../../assets/images/videos/A-N/A.mp4"),
+                numero: "1",
+                source: require("../../../assets/images/videos/Numero/Isa.mp4"),
             },
             {
-                letter: "B",
-                source: require("../../../assets/images/videos/A-N/B.mp4"),
+                numero: "2",
+                source: require("../../../assets/images/videos/Numero/Dalawa.mp4"),
             },
             {
-                letter: "C",
-                source: require("../../../assets/images/videos/A-N/C.mp4"),
+                numero: "3",
+                source: require("../../../assets/images/videos/Numero/Tatlo.mp4"),
             },
             {
-                letter: "D",
-                source: require("../../../assets/images/videos/A-N/D.mp4"),
+                numero: "4",
+                source: require("../../../assets/images/videos/Numero/Apat.mp4"),
             },
             {
-                letter: "E",
-                source: require("../../../assets/images/videos/A-N/E.mp4"),
+                numero: "5",
+                source: require("../../../assets/images/videos/Numero/Lima.mp4"),
             },
             {
-                letter: "F",
-                source: require("../../../assets/images/videos/A-N/F.mp4"),
+                numero: "6",
+                source: require("../../../assets/images/videos/Numero/Anim.mp4"),
             },
             {
-                letter: "G",
-                source: require("../../../assets/images/videos/A-N/G.mp4"),
+                numero: "7",
+                source: require("../../../assets/images/videos/Numero/Pito.mp4"),
+            },
+            {
+                numero: "8",
+                source: require("../../../assets/images/videos/Numero/Walo.mp4"),
+            },
+            {
+                numero: "9",
+                source: require("../../../assets/images/videos/Numero/Siyam.mp4"),
+            },
+            {
+                numero: "10",
+                source: require("../../../assets/images/videos/Numero/Sampo.mp4"),
             },
         ],
         []
@@ -149,12 +161,12 @@ export default function Lesson1() {
 
     const handleQuiz = async () => {
         await playPop();
-        router.push("/lessons/quiz/quiz1");
+        router.push("/lessons/quiz/quiz5");
     };
 
     const getTitle = () => {
-        if (isIntro) return "Lesson 1 - Alpabeto";
-        return `Lesson 1 - Titik ${lessonVideos[currentIndex].letter}`;
+        if (isIntro) return "Lesson 5 - Numero";
+        return `Lesson 5 - Numero ${lessonVideos[currentIndex].numero}`;
     };
 
     return (
@@ -174,23 +186,23 @@ export default function Lesson1() {
             {isIntro ? (
                 <View style={styles.introCard}>
                     <View style={styles.badge}>
-                        <Text style={styles.badgeText}>Lesson 1</Text>
+                        <Text style={styles.badgeText}>Lesson 5</Text>
                     </View>
 
-                    <Text style={styles.introHeading}>FSL Alpabeto (A–G)</Text>
+                    <Text style={styles.introHeading}>FSL Numero (1–10)</Text>
 
                     <Text style={styles.introText}>
-                        Sa araling ito, matututuhan mo ang mga senyas ng alpabeto mula A
-                        hanggang G sa FSL.
+                        Sa araling ito, matututuhan mo ang mga senyas para sa mga numero
+                        mula 1 hanggang 10.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Bawat video ay nagpapakita ng isang titik. Pindutin ang Susunod
-                        para sa kasunod na letra o Ulitin para mapanood muli ang senyas.
+                        Bawat video ay nagpapakita ng isang numero. Pindutin ang Susunod
+                        para sa kasunod na numero o Ulitin para mapanood muli ang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Handa ka na ba? Magsimula tayo sa titik A.
+                        Handa ka na ba? Magsimula tayo sa numero 1.
                     </Text>
 
                     <TouchableOpacity
@@ -205,9 +217,9 @@ export default function Lesson1() {
             ) : (
                 <>
                     <View style={styles.progressCard}>
-                        <Text style={styles.progressLabel}>Titik</Text>
+                        <Text style={styles.progressLabel}>Numero</Text>
                         <Text style={styles.progressText}>
-                            {lessonVideos[currentIndex].letter}
+                            {lessonVideos[currentIndex].numero}
                         </Text>
                         <Text style={styles.progressSub}>
                             {currentIndex + 1} / {lessonVideos.length}
@@ -216,7 +228,7 @@ export default function Lesson1() {
 
                     <View style={styles.videoCard}>
                         <VideoView
-                            key={lessonVideos[currentIndex].letter}
+                            key={lessonVideos[currentIndex].numero}
                             style={styles.video}
                             player={player}
                             contentFit="contain"

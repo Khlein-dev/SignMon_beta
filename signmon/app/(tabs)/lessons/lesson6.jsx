@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -9,66 +9,140 @@ import {
 import { router } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Audio } from "expo-av";
 
-export default function Lesson1() {
+export default function Lesson6() {
     const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
 
     const lessonVideos = useMemo(
         () => [
             {
-                letter: "Linggo",
-                source: require("../../../assets/images/videos/Araw/Linggo.mp4"),
+                color: "Pula",
+                source: require("../../../assets/images/videos/Kulay/Pula(Red).mp4"),
             },
             {
-                letter: "Lunes",
-                source: require("../../../assets/images/videos/Araw/Lunes.mp4"),
+                color: "Bughaw",
+                source: require("../../../assets/images/videos/Kulay/Asul(Blue).mp4"),
             },
             {
-                letter: "Martes",
-                source: require("../../../assets/images/videos/Araw/Martes.mp4"),
+                color: "Dilaw",
+                source: require("../../../assets/images/videos/Kulay/Dilaw(Yellow).mp4"),
             },
             {
-                letter: "Miyerkules",
-                source: require("../../../assets/images/videos/Araw/Miyerkules.mp4"),
+                color: "Berde",
+                source: require("../../../assets/images/videos/Kulay/Berde(Green).mp4"),
             },
             {
-                letter: "Huwebes",
-                source: require("../../../assets/images/videos/Araw/Huwebes.mp4"),
+                color: "Kahel",
+                source: require("../../../assets/images/videos/Kulay/Kahel(Orange).mp4"),
             },
             {
-                letter: "Biyernes",
-                source: require("../../../assets/images/videos/Araw/Biyernes.mp4"),
+                color: "Lila",
+                source: require("../../../assets/images/videos/Kulay/Lila(Violet).mp4"),
             },
             {
-                letter: "Sabado",
-                source: require("../../../assets/images/videos/Araw/Sabado.mp4"),
+                color: "Rosas",
+                source: require("../../../assets/images/videos/Kulay/Rosas(Pink).mp4"),
+            },
+            {
+                color: "Kayumanggi",
+                source: require("../../../assets/images/videos/Kulay/Kayumanggi(Brown).mp4"),
+            },
+            {
+                color: "Itim",
+                source: require("../../../assets/images/videos/Kulay/Itim(Black).mp4"),
+            },
+            {
+                color: "Abo",
+                source: require("../../../assets/images/videos/Kulay/Abo(Gray).mp4"),
+            },
+            {
+                color: "Puti",
+                source: require("../../../assets/images/videos/Kulay/Puti(White).mp4"),
+            },
+            {
+                color: "Ginto",
+                source: require("../../../assets/images/videos/Kulay/Ginto(Gold).mp4"),
+            },
+            {
+                color: "Pilak",
+                source: require("../../../assets/images/videos/Kulay/Pilak(Silver).mp4"),
             },
         ],
         []
     );
 
-    const player = useVideoPlayer(null, (player) => {
-        player.loop = false;
+    const player = useVideoPlayer(null, (playerInstance) => {
+        playerInstance.loop = false;
+        playerInstance.muted = true;
     });
+
+    const soundRef = useRef(null);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const loadSound = async () => {
+            try {
+                const { sound } = await Audio.Sound.createAsync(
+                    require("../../../assets/images/audio/pop.mp3")
+                );
+
+                if (isActive) {
+                    soundRef.current = sound;
+                } else {
+                    await sound.unloadAsync();
+                }
+            } catch (error) {
+                console.log("Failed to load pop sound:", error);
+            }
+        };
+
+        loadSound();
+
+        return () => {
+            isActive = false;
+
+            if (soundRef.current) {
+                soundRef.current.unloadAsync();
+                soundRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (currentIndex >= 0 && currentIndex < lessonVideos.length) {
             player.replace(lessonVideos[currentIndex].source);
+            player.muted = true;
             player.play();
         }
     }, [currentIndex, lessonVideos, player]);
 
+    const playPop = async () => {
+        try {
+            if (!soundRef.current) return;
+            await soundRef.current.replayAsync();
+        } catch (error) {
+            console.log("Failed to play pop sound:", error);
+        }
+    };
+
     const isIntro = currentIndex === -1;
     const isLastVideo = currentIndex === lessonVideos.length - 1;
 
-    const handleReplay = () => {
+    const handleReplay = async () => {
+        await playPop();
+
         if (!isIntro) {
             player.currentTime = 0;
+            player.muted = true;
             player.play();
         }
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
+        await playPop();
+
         if (isIntro) {
             setCurrentIndex(0);
             return;
@@ -79,7 +153,9 @@ export default function Lesson1() {
         }
     };
 
-    const handlePrevious = () => {
+    const handlePrevious = async () => {
+        await playPop();
+
         if (currentIndex === 0) {
             setCurrentIndex(-1);
             return;
@@ -90,17 +166,72 @@ export default function Lesson1() {
         }
     };
 
-    const handleExit = () => {
+    const handleExit = async () => {
+        await playPop();
         router.replace("/Home");
     };
 
-    const handleQuiz = () => {
-        router.push("/lessons/quiz/quiz1");
+    const handleQuiz = async () => {
+        await playPop();
+        router.push("/lessons/quiz/quiz6");
     };
 
     const getTitle = () => {
-        if (isIntro) return "Lesson 6 - Araw ng Linggo";
-        return `Lesson 1 - ${lessonVideos[currentIndex].letter}`;
+        if (isIntro) return "Lesson 6 - Mga Kulay";
+        return `Lesson 6 - ${lessonVideos[currentIndex].color}`;
+    };
+
+    const getProgressCardColor = () => {
+        if (isIntro) return "#FFBE55";
+
+        const colorMap = {
+            Pula: "#EF4444",
+            Bughaw: "#3B82F6",
+            Dilaw: "#FACC15",
+            Berde: "#22C55E",
+            Kahel: "#F97316",
+            Lila: "#A855F7",
+            Rosas: "#EC4899",
+            Kayumanggi: "#8B5E3C",
+            Itim: "#111111",
+            Abo: "#9CA3AF",
+            Puti: "#FFFFFF",
+            Ginto: "#D4AF37",
+            Pilak: "#C0C0C0",
+        };
+
+        return colorMap[lessonVideos[currentIndex].color] || "#FFBE55";
+    };
+
+    const getProgressTextColor = () => {
+        if (isIntro) return "#2F1B00";
+
+        const lightBackgrounds = ["Dilaw", "Puti", "Abo", "Ginto", "Pilak"];
+        return lightBackgrounds.includes(lessonVideos[currentIndex].color)
+            ? "#2F1B00"
+            : "#FFFFFF";
+    };
+
+    const getProgressBorderColor = () => {
+        if (isIntro) return "#5A3900";
+
+        const borderMap = {
+            Pula: "#7F1D1D",
+            Bughaw: "#1D4ED8",
+            Dilaw: "#A16207",
+            Berde: "#166534",
+            Kahel: "#9A3412",
+            Lila: "#6B21A8",
+            Rosas: "#9D174D",
+            Kayumanggi: "#5C4033",
+            Itim: "#000000",
+            Abo: "#6B7280",
+            Puti: "#9CA3AF",
+            Ginto: "#8B6B16",
+            Pilak: "#6B7280",
+        };
+
+        return borderMap[lessonVideos[currentIndex].color] || "#5A3900";
     };
 
     return (
@@ -119,22 +250,24 @@ export default function Lesson1() {
 
             {isIntro ? (
                 <View style={styles.introCard}>
-                    <Text style={styles.introHeading}>Araw ng Linggo</Text>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>Lesson 6</Text>
+                    </View>
+
+                    <Text style={styles.introHeading}>FSL Mga Kulay</Text>
 
                     <Text style={styles.introText}>
-                        Sa araling ito, matututuhan mo ang mga senyas ng mga
-                        araw ng linggo sa FSL.
+                        Sa araling ito, matututuhan mo ang mga senyas ng iba’t ibang kulay
+                        sa FSL.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Sa bawat hakbang, may isang video na magpapakita ng isang
-                        araw. Pindutin ang Susunod upang magpatuloy sa kasunod na
-                        araw, o Ulitin kung nais mong panoorin muli ang
-                        kasalukuyang senyas.
+                        Bawat video ay nagpapakita ng isang kulay. Pindutin ang Susunod para
+                        sa kasunod na kulay o Ulitin para mapanood muli ang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Magsisimula tayo sa Linggo.
+                        Handa ka na ba? Magsimula tayo sa kulay na Pula.
                     </Text>
 
                     <TouchableOpacity
@@ -143,31 +276,44 @@ export default function Lesson1() {
                         activeOpacity={0.8}
                     >
                         <Text style={styles.buttonText}>Simulan ang Aralin</Text>
-                        <Ionicons
-                            name="arrow-forward"
-                            size={22}
-                            color="white"
-                        />
+                        <Ionicons name="arrow-forward" size={22} color="white" />
                     </TouchableOpacity>
                 </View>
             ) : (
                 <>
-                    <View style={styles.progressCard}>
+                    <View
+                        style={[
+                            styles.progressCard,
+                            {
+                                backgroundColor: getProgressCardColor(),
+                                borderColor: getProgressBorderColor(),
+                            },
+                        ]}
+                    >
                         <Text
-                            style={styles.progressText}
+                            style={[styles.progressLabel, { color: getProgressTextColor() }]}
+                        >
+                            Kulay
+                        </Text>
+
+                        <Text
+                            style={[styles.progressText, { color: getProgressTextColor() }]}
                             numberOfLines={2}
                             adjustsFontSizeToFit
                         >
-                            {lessonVideos[currentIndex].letter}
+                            {lessonVideos[currentIndex].color}
                         </Text>
-                        <Text style={styles.progressSub}>
-                            ({currentIndex + 1}/{lessonVideos.length})
+
+                        <Text
+                            style={[styles.progressSub, { color: getProgressTextColor() }]}
+                        >
+                            {currentIndex + 1} / {lessonVideos.length}
                         </Text>
                     </View>
 
                     <View style={styles.videoCard}>
                         <VideoView
-                            key={lessonVideos[currentIndex].letter}
+                            key={lessonVideos[currentIndex].color}
                             style={styles.video}
                             player={player}
                             contentFit="contain"
@@ -182,11 +328,7 @@ export default function Lesson1() {
                             onPress={handlePrevious}
                             activeOpacity={0.8}
                         >
-                            <Ionicons
-                                name="arrow-back"
-                                size={22}
-                                color="white"
-                            />
+                            <Ionicons name="arrow-back" size={22} color="white" />
                             <Text style={styles.buttonText}>Nakaraan</Text>
                         </TouchableOpacity>
 
@@ -197,11 +339,7 @@ export default function Lesson1() {
                                 activeOpacity={0.8}
                             >
                                 <Text style={styles.buttonText}>Susunod</Text>
-                                <Ionicons
-                                    name="arrow-forward"
-                                    size={22}
-                                    color="white"
-                                />
+                                <Ionicons name="arrow-forward" size={22} color="white" />
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
@@ -209,11 +347,7 @@ export default function Lesson1() {
                                 onPress={handleQuiz}
                                 activeOpacity={0.8}
                             >
-                                <Ionicons
-                                    name="help-circle"
-                                    size={22}
-                                    color="white"
-                                />
+                                <Ionicons name="help-circle" size={22} color="white" />
                                 <Text style={styles.buttonText}>Mag-Quiz</Text>
                             </TouchableOpacity>
                         )}
@@ -236,7 +370,7 @@ export default function Lesson1() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff3cd",
+        backgroundColor: "#FFEFC2",
         paddingHorizontal: 20,
         paddingTop: 20,
     },
@@ -245,39 +379,62 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginTop: 40,
+        marginTop: 24,
         marginBottom: 20,
     },
 
     title: {
-        fontSize: 25,
-        color: "#3b2a98",
+        flex: 1,
+        fontSize: 26,
+        color: "#2D2A8C",
         fontFamily: "HeyComic",
+        paddingRight: 12,
     },
 
     exitButton: {
-        width: 46,
-        height: 46,
-        borderRadius: 16,
+        width: 50,
+        height: 50,
+        borderRadius: 18,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#d72638",
-        borderWidth: 3,
-        borderColor: "#000",
+        backgroundColor: "#FF6B6B",
+        borderWidth: 4,
+        borderColor: "#3A1A1A",
     },
 
     introCard: {
-        backgroundColor: "#ffffff",
-        borderRadius: 22,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 28,
         borderWidth: 4,
-        borderColor: "#000",
-        padding: 20,
-        marginTop: 20,
+        borderColor: "#000000",
+        padding: 22,
+        marginTop: 16,
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+    },
+
+    badge: {
+        alignSelf: "center",
+        backgroundColor: "#FFBE55",
+        borderRadius: 999,
+        borderWidth: 3,
+        borderColor: "#5A3900",
+        paddingHorizontal: 18,
+        paddingVertical: 8,
+        marginBottom: 14,
+    },
+
+    badgeText: {
+        color: "#4A2D00",
+        fontSize: 16,
+        fontFamily: "HeyComic",
     },
 
     introHeading: {
-        fontSize: 28,
-        color: "#3b2a98",
+        fontSize: 30,
+        color: "#2D2A8C",
         fontFamily: "HeyComic",
         marginBottom: 14,
         textAlign: "center",
@@ -285,7 +442,7 @@ const styles = StyleSheet.create({
 
     introText: {
         fontSize: 18,
-        color: "#222",
+        color: "#3E2F1C",
         marginBottom: 12,
         lineHeight: 26,
         fontFamily: "HeyComic",
@@ -293,29 +450,32 @@ const styles = StyleSheet.create({
     },
 
     progressCard: {
-        width: 180,
-        height: 120,
+        width: 240,
+        minHeight: 140,
         alignSelf: "center",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#ffb703",
-        borderRadius: 16,
-        borderWidth: 3,
-        borderColor: "#000",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        marginBottom: 14,
+        borderRadius: 24,
+        borderWidth: 4,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 16,
+    },
+
+    progressLabel: {
+        fontSize: 14,
+        fontFamily: "HeyComic",
+        marginBottom: 2,
     },
 
     progressText: {
-        color: "#000",
         fontSize: 30,
         fontFamily: "HeyComic",
         textAlign: "center",
+        lineHeight: 36,
     },
 
     progressSub: {
-        color: "#000",
         fontSize: 14,
         fontFamily: "HeyComic",
         marginTop: 4,
@@ -324,12 +484,11 @@ const styles = StyleSheet.create({
     videoCard: {
         alignSelf: "center",
         width: "100%",
-        height: "50%",
-        aspectRatio: 9 / 16,
-        backgroundColor: "#000",
-        borderRadius: 22,
+        height: "48%",
+        backgroundColor: "#103A73",
+        borderRadius: 28,
         borderWidth: 4,
-        borderColor: "#000",
+        borderColor: "#000000",
         overflow: "hidden",
         marginBottom: 20,
     },
@@ -350,10 +509,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#e76f51",
-        borderRadius: 18,
-        borderWidth: 3,
-        borderColor: "#000",
+        backgroundColor: "#F28B54",
+        borderRadius: 20,
+        borderWidth: 4,
+        borderColor: "#6B2F12",
         paddingVertical: 16,
         gap: 8,
     },
@@ -363,10 +522,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#3b2a98",
-        borderRadius: 18,
-        borderWidth: 3,
-        borderColor: "#000",
+        backgroundColor: "#2D2A8C",
+        borderRadius: 20,
+        borderWidth: 4,
+        borderColor: "#161355",
         paddingVertical: 16,
         gap: 8,
     },
@@ -376,10 +535,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#17a374",
-        borderRadius: 18,
-        borderWidth: 3,
-        borderColor: "#000",
+        backgroundColor: "#22B07D",
+        borderRadius: 20,
+        borderWidth: 4,
+        borderColor: "#0C5B40",
         paddingVertical: 16,
         gap: 8,
     },
@@ -389,29 +548,29 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#6a4c93",
-        borderRadius: 18,
-        borderWidth: 3,
-        borderColor: "#000",
+        backgroundColor: "#8B5CF6",
+        borderRadius: 20,
+        borderWidth: 4,
+        borderColor: "#4C1D95",
         paddingVertical: 16,
         gap: 8,
     },
 
     nextButtonSingle: {
-        marginTop: 12,
+        marginTop: 14,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#17a374",
-        borderRadius: 18,
-        borderWidth: 3,
-        borderColor: "#000",
+        backgroundColor: "#22B07D",
+        borderRadius: 20,
+        borderWidth: 4,
+        borderColor: "#0C5B40",
         paddingVertical: 16,
         gap: 8,
     },
 
     buttonText: {
-        color: "white",
+        color: "#FFFFFF",
         fontSize: 18,
         fontFamily: "HeyComic",
     },
