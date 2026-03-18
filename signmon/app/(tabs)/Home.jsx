@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
     View,
     Text,
@@ -8,16 +8,20 @@ import {
     Animated,
     Pressable,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import BottomPanel from "../../components/BottomPanel";
 import LeftPanel from "../../components/LeftPanel";
 import RightPanel from "../../components/RightPanel";
 import Pet from "../../components/Pet";
 import Stats from "../../components/StatsBar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Reward from "../../components/Reward";
 
 // ICONS
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function Home() {
     const [openPanel, setOpenPanel] = useState(null); // "left" | "right" | "bottom" | null
@@ -26,102 +30,178 @@ export default function Home() {
     const [dress, setDress] = useState(null);
     const [necklace, setNecklace] = useState(null);
 
+    const settingsScale = useRef(new Animated.Value(1)).current;
+    const wardrobeScale = useRef(new Animated.Value(1)).current;
+    const learnScale = useRef(new Animated.Value(1)).current;
+    const gearRotate = useRef(new Animated.Value(0)).current;
+
     const closePanels = () => {
         setOpenPanel(null);
     };
 
+    const animatePop = (anim, toValue = 0.92) => {
+        Animated.sequence([
+            Animated.timing(anim, {
+                toValue,
+                duration: 120,
+                useNativeDriver: true,
+            }),
+            Animated.spring(anim, {
+                toValue: 1,
+                friction: 4,
+                tension: 140,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
+
+    const spinGear = () => {
+        gearRotate.setValue(0);
+
+        Animated.timing(gearRotate, {
+            toValue: 1,
+            duration: 450,
+            useNativeDriver: true,
+        }).start();
+    };
+
     const openLeftPanel = () => {
+        animatePop(settingsScale);
+        spinGear();
         setOpenPanel("left");
     };
 
     const openRightPanel = () => {
+        animatePop(wardrobeScale);
         setOpenPanel("right");
     };
 
     const openBottomPanel = () => {
+        animatePop(learnScale, 0.95);
         setOpenPanel("bottom");
     };
 
-    // BOOK JUMP ANIMATION
-    const jumpAnim = useRef(new Animated.Value(0)).current;
+    const clearProgress = async () => {
+        try {
+            await AsyncStorage.multiRemove([
+                "quiz1Finished",
+                "quiz2Finished",
+                "quiz3Finished",
+                "quiz4Finished",
+                "quiz5Finished",
+                "quiz6Finished",
+                "quiz7Finished",
+                "quiz8Finished",
+                "lesson1Passed",
+                "lesson2Passed",
+                "lesson3Passed",
+                "lesson4Passed",
+                "lesson5Passed",
+                "lesson6Passed",
+                "lesson7Passed",
+                "lesson8Passed",
+            ]);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            Animated.sequence([
-                Animated.timing(jumpAnim, {
-                    toValue: -25,
-                    duration: 100,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(jumpAnim, {
-                    toValue: 0,
-                    duration: 100,
-                    useNativeDriver: true,
-                }),
-            ]).start();
-        }, 4000);
-
-        return () => clearInterval(interval);
-    }, [jumpAnim]);
+            console.log("Progress cleared!");
+        } catch (e) {
+            console.log("Error clearing progress:", e);
+        }
+    };
 
     const handleBottomNavigate = (route) => {
         setOpenPanel(null);
-
-        // Placeholder navigation
         console.log("Navigate to:", route);
-
-        // later replace with:
-        // navigation.navigate(route);
     };
+
+    const gearRotateInterpolate = gearRotate.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0deg", "180deg"],
+    });
 
     return (
         <ImageBackground
-            source={require("../../assets/images/background.jpg")}
+            source={require("../../assets/images/backgroundCONDE.png")}
             style={styles.container}
         >
+            <View style={styles.softBubbleOne} />
+            <View style={styles.softBubbleTwo} />
+            <View style={styles.softBubbleThree} />
+
             <Stats />
 
-            {/* PET */}
             <Pet hat={hat} dress={dress} necklace={necklace} />
 
             {/* LEFT BUTTON */}
-            <TouchableOpacity
-                style={styles.leftButton}
-                onPress={openLeftPanel}
-                activeOpacity={0.8}
+            <Animated.View
+                style={[
+                    styles.leftButtonWrap,
+                    { transform: [{ scale: settingsScale }] },
+                ]}
             >
-                <Text style={styles.buttonText}>
-                    <FontAwesome name="gear" size={50} color="black" />
-                </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.leftButton}
+                    onPress={openLeftPanel}
+                    activeOpacity={0.88}
+                >
+                    <Animated.View style={{ transform: [{ rotate: gearRotateInterpolate }] }}>
+                        <FontAwesome name="gear" size={46} color="#1b1208" />
+                    </Animated.View>
+                    <Text style={styles.sideButtonLabel}>Ayos</Text>
+                </TouchableOpacity>
+            </Animated.View>
 
             {/* RIGHT BUTTON */}
-            <TouchableOpacity
-                style={styles.rightButton}
-                onPress={openRightPanel}
-                activeOpacity={0.8}
+            <Animated.View
+                style={[
+                    styles.rightButtonWrap,
+                    { transform: [{ scale: wardrobeScale }] },
+                ]}
             >
-                <Text style={styles.buttonText}>
-                    <MaterialCommunityIcons name="hanger" size={50} color="black" />
-                </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.rightButton}
+                    onPress={openRightPanel}
+                    activeOpacity={0.88}
+                >
+                    <MaterialCommunityIcons name="hanger" size={48} color="#2c1600" />
+                    <Text style={styles.sideButtonLabel}>Damit</Text>
+                </TouchableOpacity>
+            </Animated.View>
 
             {/* BOTTOM BUTTON */}
             <Animated.View
                 style={[
-                    styles.learningButton,
-                    { transform: [{ translateY: jumpAnim }] },
+                    styles.learningButtonWrap,
+                    { transform: [{ scale: learnScale }] },
                 ]}
             >
-                <TouchableOpacity onPress={openBottomPanel} activeOpacity={0.8}>
-                    <ImageBackground
-                        source={require("../../assets/images/asl.png")}
-                        style={styles.aslImage}
+                <TouchableOpacity
+                    onPress={openBottomPanel}
+                    activeOpacity={0.9}
+                    style={styles.learnButton}
+                >
+
+                    <LinearGradient
+                        colors={["#2b6cb0", "#184a8c", "#0d2f5e"]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
                     />
+
+                    <View style={styles.learnBubbleOne} />
+                    <View style={styles.learnBubbleTwo} />
+                    <View style={styles.learnBubbleThree} />
+                    <View style={styles.learnBubbleFour} />
+
+                    <View style={styles.learnBookBadge}>
+                        <Ionicons name="book" size={32} color="#1b1208" />
+                    </View>
+
+                    <Text style={styles.learnTitle}>Mag-Aral</Text>
+                    <Text style={styles.learnSubtitle}>Buksan ang mga lesson</Text>
                 </TouchableOpacity>
             </Animated.View>
 
-            {/* LEFT PANEL MODAL */}
+            {/* LEFT PANEL */}
             <LeftPanel visible={openPanel === "left"} onClose={closePanels} />
 
             {/* BACKDROP - only for right */}
@@ -142,12 +222,24 @@ export default function Home() {
                 </View>
             )}
 
+            {/* DATA RESET BUTTON - DELETE ONCE DONE */}
+            <TouchableOpacity
+                onPress={clearProgress}
+                style={styles.resetButton}
+                activeOpacity={0.85}
+            >
+                <Text style={styles.resetButtonText}>RESET PROGRESS</Text>
+            </TouchableOpacity>
+
             {/* BOTTOM PANEL */}
             <BottomPanel
                 visible={openPanel === "bottom"}
                 onClose={closePanels}
                 onNavigate={handleBottomNavigate}
             />
+
+            <Reward />
+
         </ImageBackground>
     );
 }
@@ -159,55 +251,180 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
 
-    buttonText: {
-        color: "white",
+    softBubbleOne: {
+        position: "absolute",
+        top: 130,
+        left: 18,
+        width: 80,
+        height: 80,
+        borderRadius: 999,
+        backgroundColor: "rgba(125, 211, 252, 0.25)",
+    },
+
+    softBubbleTwo: {
+        position: "absolute",
+        top: 230,
+        right: 22,
+        width: 58,
+        height: 58,
+        borderRadius: 999,
+        backgroundColor: "rgba(167, 139, 250, 0.22)",
+    },
+
+    softBubbleThree: {
+        position: "absolute",
+        bottom: 170,
+        left: 50,
+        width: 68,
+        height: 68,
+        borderRadius: 999,
+        backgroundColor: "rgba(110, 231, 183, 0.2)",
+    },
+
+    leftButtonWrap: {
+        position: "absolute",
+        left: 20,
+        top: "29%",
+        zIndex: 2,
+    },
+
+    rightButtonWrap: {
+        position: "absolute",
+        right: 20,
+        top: "29%",
+        zIndex: 2,
     },
 
     leftButton: {
-        position: "absolute",
-        width: 90,
-        height: 90,
+        width: 98,
+        height: 108,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 35,
+        borderRadius: 34,
         borderWidth: 6,
         borderColor: "#000000",
-        left: 20,
-        top: "22%",
-        backgroundColor: "#3b2a98",
-        padding: 10,
-        zIndex: 1,
+        backgroundColor: "#08707a",
+        paddingTop: 12,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
     },
 
     rightButton: {
-        position: "absolute",
-        width: 90,
-        height: 90,
+        width: 98,
+        height: 108,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 35,
+        borderRadius: 34,
         borderWidth: 6,
         borderColor: "#000000",
-        right: 20,
-        top: "22%",
-        backgroundColor: "#f59208",
-        padding: 10,
-        zIndex: 1,
+        backgroundColor: "#e67b2e",
+        paddingTop: 12,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
     },
 
-    learningButton: {
+    sideButtonLabel: {
+        marginTop: 4,
+        color: "#1d1207",
+        fontFamily: "HeyComic",
+        fontSize: 16,
+    },
+
+    learningButtonWrap: {
         position: "absolute",
-        width: 400,
-        height: 200,
+        bottom: 56,
+        zIndex: 2,
+    },
+
+    learnButton: {
+        width: 380,
+        minHeight: 200,
+        backgroundColor: "#0c3e78",
+        borderRadius: 34,
+        borderWidth: 6,
+        borderColor: "#000000",
         alignItems: "center",
         justifyContent: "center",
-        bottom: 60,
-        zIndex: 1,
+        paddingHorizontal: 18,
+        paddingVertical: 16,
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOpacity: 0.22,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 5 },
     },
 
-    aslImage: {
-        width: 420,
-        height: 220,
+    learnBubbleOne: {
+        position: "absolute",
+        top: -10,
+        left: -10,
+        width: 100,
+        height: 100,
+        borderRadius: 999,
+        backgroundColor: "rgba(36, 179, 179, 0.42)",
+    },
+
+    learnBubbleTwo: {
+        position: "absolute",
+        bottom: -12,
+        right: -12,
+        width: 100,
+        height: 100,
+        borderRadius: 999,
+        backgroundColor: "rgba(90, 216, 255, 0.36)",
+    },
+
+    learnBubbleThree: {
+        position: "absolute",
+        top: 22,
+        right: 34,
+        width: 38,
+        height: 38,
+        borderRadius: 999,
+        backgroundColor: "rgba(111, 240, 188, 0.34)",
+    },
+
+    learnBubbleFour: {
+        position: "absolute",
+        bottom: 18,
+        left: 42,
+        width: 34,
+        height: 34,
+        borderRadius: 999,
+        backgroundColor: "rgba(255, 166, 102, 0.34)",
+    },
+
+    learnBookBadge: {
+        width: 100,
+        height: 74,
+        borderRadius: 18,
+        backgroundColor: "#fff4c2",
+        borderWidth: 4,
+        borderColor: "#000000",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 8,
+    },
+
+    learnTitle: {
+        color: "#fff4c2",
+        fontFamily: "HeyComic",
+        fontSize: 35,
+        lineHeight: 45,
+        textShadowColor: "rgba(0,0,0,0.18)",
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 2,
+    },
+
+    learnSubtitle: {
+        marginTop: 2,
+        color: "#dbeafe",
+        fontFamily: "HeyComic",
+        fontSize: 13,
     },
 
     backdrop: {
@@ -225,8 +442,22 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 
-    panelText: {
+    resetButton: {
+        position: "absolute",
+        top: 24,
+        alignSelf: "center",
+        backgroundColor: "#ef4444",
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 14,
+        borderWidth: 3,
+        borderColor: "#000000",
+        zIndex: 20,
+    },
+
+    resetButtonText: {
         color: "white",
-        fontWeight: "bold",
+        fontFamily: "HeyComic",
+        fontSize: 13,
     },
 });
