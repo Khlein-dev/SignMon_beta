@@ -30,7 +30,6 @@ export default function RootLayout() {
         <Stack.Screen name="lessons/lesson7" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/lesson8" options={{ headerShown: false }} />
 
-      
         <Stack.Screen name="lessons/quiz/quiz1" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/quiz/quiz2" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/quiz/quiz3" options={{ headerShown: false }} />
