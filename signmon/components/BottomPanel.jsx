@@ -1,29 +1,57 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
     Animated,
     Dimensions,
     Easing,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
+    ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Audio } from "expo-av";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+const UNLOCK_RULES = {
+    "/lessons/lesson1": null,
+    "/lessons/lesson2": "quiz1Finished",
+    "/lessons/lesson3": "quiz2Finished",
+    "/lessons/lesson4": "quiz3Finished",
+    "/lessons/lesson5": "quiz4Finished",
+    "/lessons/lesson6": "quiz5Finished",
+    "/lessons/lesson7": "quiz6Finished",
+    "/lessons/lesson8": "quiz7Finished",
+};
+
 export default function BottomPanel({ visible, onClose }) {
     const [isMounted, setIsMounted] = useState(visible);
+    const [lockedModalVisible, setLockedModalVisible] = useState(false);
+    const [isLoadingLocks, setIsLoadingLocks] = useState(true);
+    const [unlockedMap, setUnlockedMap] = useState({
+        "/lessons/lesson1": true,
+        "/lessons/lesson2": false,
+        "/lessons/lesson3": false,
+        "/lessons/lesson4": false,
+        "/lessons/lesson5": false,
+        "/lessons/lesson6": false,
+        "/lessons/lesson7": false,
+        "/lessons/lesson8": false,
+    });
 
     const backdropOpacity = useRef(new Animated.Value(0)).current;
     const panelTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const itemAnimations = useRef(
         Array.from({ length: 8 }, () => new Animated.Value(0))
     ).current;
-
+    const modalScale = useRef(new Animated.Value(0.9)).current;
     const isClosingRef = useRef(false);
     const soundRef = useRef(null);
 
@@ -79,7 +107,7 @@ export default function BottomPanel({ visible, onClose }) {
         const loadSound = async () => {
             try {
                 const { sound } = await Audio.Sound.createAsync(
-                    require("../assets/images/audio/pop.mp3") // adjust path if needed
+                    require("../assets/images/audio/pop.mp3")
                 );
 
                 if (isActive) {
@@ -113,13 +141,45 @@ export default function BottomPanel({ visible, onClose }) {
         }
     };
 
+    const loadUnlockStatus = useCallback(async () => {
+        try {
+            setIsLoadingLocks(true);
+
+            const keys = [
+                "quiz1Finished",
+                "quiz2Finished",
+                "quiz3Finished",
+                "quiz4Finished",
+                "quiz5Finished",
+                "quiz6Finished",
+                "quiz7Finished",
+            ];
+
+            const entries = await AsyncStorage.multiGet(keys);
+            const values = Object.fromEntries(entries);
+
+            setUnlockedMap({
+                "/lessons/lesson1": true,
+                "/lessons/lesson2": values.quiz1Finished === "true",
+                "/lessons/lesson3": values.quiz2Finished === "true",
+                "/lessons/lesson4": values.quiz3Finished === "true",
+                "/lessons/lesson5": values.quiz4Finished === "true",
+                "/lessons/lesson6": values.quiz5Finished === "true",
+                "/lessons/lesson7": values.quiz6Finished === "true",
+                "/lessons/lesson8": values.quiz7Finished === "true",
+            });
+        } catch (error) {
+            console.log("Failed to load unlock status:", error);
+        } finally {
+            setIsLoadingLocks(false);
+        }
+    }, []);
+
     const animateItemsWithPop = () => {
         itemAnimations.forEach((anim) => anim.setValue(0));
 
         menuItems.forEach((_, index) => {
             setTimeout(() => {
-                playPop();
-
                 Animated.timing(itemAnimations[index], {
                     toValue: 1,
                     duration: 320,
@@ -130,10 +190,22 @@ export default function BottomPanel({ visible, onClose }) {
         });
     };
 
+    const animateLockedModal = () => {
+        modalScale.setValue(0.88);
+        Animated.spring(modalScale, {
+            toValue: 1,
+            friction: 6,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    };
+
     useEffect(() => {
         if (visible) {
             isClosingRef.current = false;
             setIsMounted(true);
+
+            loadUnlockStatus();
 
             Animated.parallel([
                 Animated.timing(backdropOpacity, {
@@ -156,7 +228,7 @@ export default function BottomPanel({ visible, onClose }) {
         } else if (isMounted && !isClosingRef.current) {
             closePanel(false);
         }
-    }, [visible]);
+    }, [visible, isMounted, backdropOpacity, panelTranslateY, loadUnlockStatus]);
 
     const closePanel = (callOnClose = true) => {
         if (isClosingRef.current) return;
@@ -186,6 +258,17 @@ export default function BottomPanel({ visible, onClose }) {
 
     const handlePressItem = async (route) => {
         await playPop();
+
+        if (isLoadingLocks) return;
+
+        const isUnlocked = unlockedMap[route] === true;
+
+        if (!isUnlocked) {
+            setLockedModalVisible(true);
+            animateLockedModal();
+            return;
+        }
+
         closePanel(true);
 
         setTimeout(() => {
@@ -196,6 +279,11 @@ export default function BottomPanel({ visible, onClose }) {
     const handleClosePress = async () => {
         await playPop();
         closePanel(true);
+    };
+
+    const closeLockedModal = async () => {
+        await playPop();
+        setLockedModalVisible(false);
     };
 
     if (!isMounted) return null;
@@ -247,50 +335,120 @@ export default function BottomPanel({ visible, onClose }) {
                     </Pressable>
                 </View>
 
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    <View style={styles.grid}>
-                        {menuItems.map((item, index) => {
-                            const translateY = itemAnimations[index].interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [24, 0],
-                            });
+                {isLoadingLocks ? (
+                    <View style={styles.loadingWrap}>
+                        <ActivityIndicator size="large" color="#fff4c2" />
+                        <Text style={styles.loadingText}>Inaayos ang mga lesson...</Text>
+                    </View>
+                ) : (
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+                        <View style={styles.grid}>
+                            {menuItems.map((item, index) => {
+                                const translateY = itemAnimations[index].interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [24, 0],
+                                });
 
-                            const scale = itemAnimations[index].interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0.85, 1],
-                            });
+                                const scale = itemAnimations[index].interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.85, 1],
+                                });
 
-                            return (
-                                <Animated.View
-                                    key={item.route}
-                                    style={[
-                                        styles.cardWrapper,
-                                        {
-                                            opacity: itemAnimations[index],
-                                            transform: [{ translateY }, { scale }],
-                                        },
-                                    ]}
-                                >
-                                    <Pressable
-                                        onPress={() => handlePressItem(item.route)}
-                                        style={({ pressed }) => [
-                                            styles.gridButton,
-                                            pressed && styles.gridButtonPressed,
+                                const isUnlocked = unlockedMap[item.route] === true;
+                                const isLocked = !isUnlocked;
+
+                                return (
+                                    <Animated.View
+                                        key={item.route}
+                                        style={[
+                                            styles.cardWrapper,
+                                            {
+                                                opacity: itemAnimations[index],
+                                                transform: [{ translateY }, { scale }],
+                                            },
                                         ]}
                                     >
-                                        <Text style={styles.lessonBadge}>Lesson {index + 1}</Text>
-                                        <Text style={styles.gridButtonText}>{item.label}</Text>
-                                        <Text style={styles.gridButtonSubtext}>{item.letters}</Text>
-                                    </Pressable>
-                                </Animated.View>
-                            );
-                        })}
-                    </View>
-                </ScrollView>
+                                        <Pressable
+                                            onPress={() => handlePressItem(item.route)}
+                                            style={({ pressed }) => [
+                                                styles.gridButton,
+                                                isLocked && styles.gridButtonLocked,
+                                                pressed && styles.gridButtonPressed,
+                                            ]}
+                                        >
+                                            <View style={styles.lessonTopRow}>
+                                                <Text
+                                                    style={[
+                                                        styles.lessonBadge,
+                                                        isLocked && styles.lessonBadgeLocked,
+                                                    ]}
+                                                >
+                                                    Lesson {index + 1}
+                                                </Text>
+
+                                                {isLocked && (
+                                                    <Ionicons name="lock-closed" size={18} color="#5b4b4b" />
+                                                )}
+                                            </View>
+
+                                            <Text
+                                                style={[
+                                                    styles.gridButtonText,
+                                                    isLocked && styles.gridButtonTextLocked,
+                                                ]}
+                                            >
+                                                {item.label}
+                                            </Text>
+
+                                            <Text
+                                                style={[
+                                                    styles.gridButtonSubtext,
+                                                    isLocked && styles.gridButtonSubtextLocked,
+                                                ]}
+                                            >
+                                                {item.letters}
+                                            </Text>
+                                        </Pressable>
+                                    </Animated.View>
+                                );
+                            })}
+                        </View>
+                    </ScrollView>
+                )}
             </Animated.View>
+
+            <Modal visible={lockedModalVisible} transparent animationType="fade">
+                <View style={styles.modalBackdrop}>
+                    <Animated.View
+                        style={[
+                            styles.modalCard,
+                            {
+                                transform: [{ scale: modalScale }],
+                            },
+                        ]}
+                    >
+                        <View style={styles.lockIconCircle}>
+                            <Ionicons name="lock-closed" size={34} color="#5a3900" />
+                        </View>
+
+                        <Text style={styles.modalTitle}>Naka-lock pa</Text>
+                        <Text style={styles.modalText}>
+                            Kailangan munang tapusin ang huling lesson upang mabuksan.
+                        </Text>
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={closeLockedModal}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.modalButtonText}>OK</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -310,6 +468,8 @@ const styles = StyleSheet.create({
         top: 70,
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
+        borderBlockColor: "#000000",
+        borderWidth: 4,
         overflow: "hidden",
         zIndex: 999,
         elevation: 999,
@@ -370,6 +530,20 @@ const styles = StyleSheet.create({
         fontFamily: "HeyComic",
     },
 
+    loadingWrap: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingBottom: 50,
+    },
+
+    loadingText: {
+        marginTop: 12,
+        color: "#fff4c2",
+        fontSize: 18,
+        fontFamily: "HeyComic",
+    },
+
     scrollContent: {
         paddingBottom: 30,
     },
@@ -401,16 +575,32 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
     },
 
+    gridButtonLocked: {
+        backgroundColor: "#d9d4cf",
+        borderColor: "#8a817c",
+    },
+
     gridButtonPressed: {
         transform: [{ scale: 0.97 }],
         opacity: 0.92,
+    },
+
+    lessonTopRow: {
+        width: "100%",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 6,
     },
 
     lessonBadge: {
         color: "#4a2d00",
         fontSize: 14,
         fontFamily: "HeyComic",
-        marginBottom: 6,
+    },
+
+    lessonBadgeLocked: {
+        color: "#5b4b4b",
     },
 
     gridButtonText: {
@@ -421,11 +611,83 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
 
+    gridButtonTextLocked: {
+        color: "#4f4a46",
+    },
+
     gridButtonSubtext: {
         color: "#5c3a00",
         fontSize: 13,
         fontFamily: "HeyComic",
         textAlign: "center",
         lineHeight: 18,
+    },
+
+    gridButtonSubtextLocked: {
+        color: "#6b6460",
+    },
+
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+    },
+
+    modalCard: {
+        width: "100%",
+        backgroundColor: "#fff7da",
+        borderRadius: 28,
+        borderWidth: 4,
+        borderColor: "#5a3900",
+        padding: 24,
+        alignItems: "center",
+    },
+
+    lockIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 999,
+        backgroundColor: "#ffdf8a",
+        borderWidth: 4,
+        borderColor: "#5a3900",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 14,
+    },
+
+    modalTitle: {
+        color: "#2f1b00",
+        fontSize: 30,
+        fontFamily: "HeyComic",
+        textAlign: "center",
+        marginBottom: 10,
+    },
+
+    modalText: {
+        color: "#5c3a00",
+        fontSize: 18,
+        fontFamily: "HeyComic",
+        textAlign: "center",
+        lineHeight: 26,
+        marginBottom: 18,
+    },
+
+    modalButton: {
+        minWidth: 150,
+        backgroundColor: "#22B07D",
+        borderRadius: 20,
+        borderWidth: 4,
+        borderColor: "#0C5B40",
+        paddingVertical: 14,
+        paddingHorizontal: 28,
+        alignItems: "center",
+    },
+
+    modalButtonText: {
+        color: "#FFFFFF",
+        fontSize: 18,
+        fontFamily: "HeyComic",
     },
 });
