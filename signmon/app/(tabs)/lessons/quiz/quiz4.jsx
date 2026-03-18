@@ -7,25 +7,28 @@ import {
     SafeAreaView,
     ActivityIndicator,
     Modal,
+    Animated,
+    Easing,
 } from "react-native";
 import { router } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const LETTERS = ["A", "B", "C", "D", "F",];
-const API_URL = "http://192.168.1.2:8000/detect-sign/quiz1";
+const LETTERS = ["T", "U", "V", "W", "X", "Y"];
+const API_URL = "http://192.168.1.2:8000/detect-sign/quiz4";
 
 const DETECTION_INTERVAL = 50;
 const ROUND_TIME = 60;
 const READY_COUNTDOWN = 5;
 const WIN_SCORE = 8;
 
-const QUIZ_FINISHED_KEY = "quiz1Finished";
-const REVIEW_ROUTE = "/lessons/lesson1";
+const QUIZ_FINISHED_KEY = "quiz4Finished";
+const LESSON_PASSED_KEY = "lesson4Passed";
+const REVIEW_ROUTE = "/lessons/lesson4";
 const HOME_ROUTE = "/Home";
 
-export default function Quiz1Screen() {
+export default function Quiz4Screen() {
     const cameraRef = useRef(null);
     const detectIntervalRef = useRef(null);
     const roundTimerRef = useRef(null);
@@ -38,7 +41,7 @@ export default function Quiz1Screen() {
     const initialLetter = useMemo(() => getRandomLetter(), []);
     const [targetLetter, setTargetLetter] = useState(initialLetter);
     const [detectedLetter, setDetectedLetter] = useState(null);
-    const [result, setResult] = useState(null); // "correct" | "wrong" | "error" | null
+    const [result, setResult] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [isChecking, setIsChecking] = useState(false);
     const [score, setScore] = useState(0);
@@ -53,6 +56,11 @@ export default function Quiz1Screen() {
 
     const [gameStarted, setGameStarted] = useState(false);
     const [didWin, setDidWin] = useState(false);
+
+    const targetScale = useRef(new Animated.Value(1)).current;
+    const targetRotate = useRef(new Animated.Value(0)).current;
+    const feedbackScale = useRef(new Animated.Value(1)).current;
+    const modalPop = useRef(new Animated.Value(0.9)).current;
 
     const clearAllTimers = useCallback(() => {
         if (detectIntervalRef.current) {
@@ -73,6 +81,68 @@ export default function Quiz1Screen() {
         }
     }, []);
 
+    const animateTarget = useCallback(() => {
+        targetScale.setValue(1);
+        targetRotate.setValue(0);
+
+        Animated.parallel([
+            Animated.sequence([
+                Animated.timing(targetScale, {
+                    toValue: 1.12,
+                    duration: 180,
+                    easing: Easing.out(Easing.back(1.8)),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(targetScale, {
+                    toValue: 1,
+                    duration: 180,
+                    easing: Easing.out(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ]),
+            Animated.sequence([
+                Animated.timing(targetRotate, {
+                    toValue: 1,
+                    duration: 120,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(targetRotate, {
+                    toValue: -1,
+                    duration: 120,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(targetRotate, {
+                    toValue: 0,
+                    duration: 120,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
+            ]),
+        ]).start();
+    }, [targetRotate, targetScale]);
+
+    const animateFeedback = useCallback(() => {
+        feedbackScale.setValue(0.94);
+        Animated.spring(feedbackScale, {
+            toValue: 1,
+            friction: 5,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    }, [feedbackScale]);
+
+    const animateModal = useCallback(() => {
+        modalPop.setValue(0.88);
+        Animated.spring(modalPop, {
+            toValue: 1,
+            friction: 6,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    }, [modalPop]);
+
     const handleExit = useCallback(() => {
         clearAllTimers();
         router.replace(HOME_ROUTE);
@@ -83,7 +153,8 @@ export default function Quiz1Screen() {
         setResult(null);
         setErrorMessage("");
         setAnsweredCorrectly(false);
-        setTargetLetter(getRandomLetter(current));
+        const next = getRandomLetter(current);
+        setTargetLetter(next);
     }, []);
 
     const resetWholeGame = useCallback(() => {
@@ -104,7 +175,10 @@ export default function Quiz1Screen() {
 
     const markQuizAsFinished = useCallback(async () => {
         try {
-            await AsyncStorage.setItem(QUIZ_FINISHED_KEY, "true");
+            await AsyncStorage.multiSet([
+                [QUIZ_FINISHED_KEY, "true"],
+                [LESSON_PASSED_KEY, "true"],
+            ]);
         } catch (error) {
             console.log("Failed to save quiz completion:", error);
         }
@@ -121,8 +195,9 @@ export default function Quiz1Screen() {
             }
 
             setShowResultModal(true);
+            animateModal();
         },
-        [clearAllTimers, markQuizAsFinished]
+        [clearAllTimers, markQuizAsFinished, animateModal]
     );
 
     const startLiveRound = useCallback(() => {
@@ -229,6 +304,7 @@ export default function Quiz1Screen() {
                 setResult("error");
                 setErrorMessage(data.error);
                 setDetectedLetter(null);
+                animateFeedback();
                 return;
             }
 
@@ -237,13 +313,15 @@ export default function Quiz1Screen() {
 
             if (!predicted) {
                 setResult("error");
-                setErrorMessage("Walang na-detect na sign.");
+                setErrorMessage("No sign detected.");
+                animateFeedback();
                 return;
             }
 
             if (predicted === targetLetter) {
                 setResult("correct");
                 setAnsweredCorrectly(true);
+                animateFeedback();
 
                 setScore((prev) => {
                     const nextScore = prev + 1;
@@ -264,16 +342,20 @@ export default function Quiz1Screen() {
                     setResult(null);
                     setErrorMessage("");
                     setAnsweredCorrectly(false);
-                    setTargetLetter(getRandomLetter(targetLetter));
+                    const next = getRandomLetter(targetLetter);
+                    setTargetLetter(next);
+                    animateTarget();
                     nextRoundTimeoutRef.current = null;
                 }, 700);
             } else {
                 setResult("wrong");
+                animateFeedback();
             }
         } catch (error) {
             console.error("Detection error:", error);
             setResult("error");
-            setErrorMessage("Hindi maka-connect sa detector server.");
+            setErrorMessage("Could not connect to detector server.");
+            animateFeedback();
         } finally {
             setIsChecking(false);
         }
@@ -284,6 +366,8 @@ export default function Quiz1Screen() {
         answeredCorrectly,
         targetLetter,
         finishGame,
+        animateFeedback,
+        animateTarget,
     ]);
 
     const handleDetectRef = useRef(handleDetect);
@@ -293,12 +377,21 @@ export default function Quiz1Screen() {
     }, [handleDetect]);
 
     useEffect(() => {
+        animateTarget();
+    }, [targetLetter, animateTarget]);
+
+    useEffect(() => {
         return () => {
             clearAllTimers();
         };
     }, [clearAllTimers]);
 
     const progressWidth = `${Math.min((score / WIN_SCORE) * 100, 100)}%`;
+
+    const rotateInterpolate = targetRotate.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: ["-8deg", "0deg", "8deg"],
+    });
 
     if (!permission) {
         return (
@@ -312,7 +405,7 @@ export default function Quiz1Screen() {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Quiz 1</Text>
+                    <Text style={styles.title}>Quiz 4</Text>
 
                     <TouchableOpacity
                         style={styles.exitButton}
@@ -345,7 +438,7 @@ export default function Quiz1Screen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Quiz 1</Text>
+                <Text style={styles.title}>Quiz 4</Text>
 
                 <TouchableOpacity
                     style={styles.exitButton}
@@ -357,10 +450,17 @@ export default function Quiz1Screen() {
             </View>
 
             <View style={styles.topRow}>
-                <View style={styles.targetCard}>
-                    <Text style={styles.targetLabel}>Ipakita ang sign na ito</Text>
+                <Animated.View
+                    style={[
+                        styles.targetCard,
+                        {
+                            transform: [{ scale: targetScale }, { rotate: rotateInterpolate }],
+                        },
+                    ]}
+                >
+                    <Text style={styles.targetLabel}>Show this sign</Text>
                     <Text style={styles.targetLetter}>{targetLetter}</Text>
-                </View>
+                </Animated.View>
 
                 <View style={styles.scoreCard}>
                     <Text style={styles.scoreLabel}>Score</Text>
@@ -404,53 +504,73 @@ export default function Quiz1Screen() {
                 </View>
 
                 <View style={styles.cameraHintBadge}>
-                    <Text style={styles.cameraHintText}>Ilagay ang kamay sa gitna</Text>
+                    <Text style={styles.cameraHintText}>🙌 Ilagay ang kamay sa gitna</Text>
                 </View>
             </View>
 
-            <View style={styles.feedbackCard}>
+            <Animated.View
+                style={[
+                    styles.feedbackCard,
+                    {
+                        transform: [{ scale: feedbackScale }],
+                    },
+                ]}
+            >
                 {!gameStarted ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>🎯</Text>
                         <Text style={styles.feedbackText}>
                             Pindutin ang OK para simulan ang challenge.
                         </Text>
                     </>
                 ) : isChecking ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>👀</Text>
                         <Text style={styles.feedbackText}>Tinitingnan ang sign mo...</Text>
                     </>
                 ) : result === "correct" ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>🎉</Text>
                         <Text style={styles.correctText}>
-                            Tama! Detected: {detectedLetter}
+                            Correct! Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "wrong" ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>🤔</Text>
                         <Text style={styles.wrongText}>
-                            Mali. Detected: {detectedLetter}
+                            Wrong — Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "error" ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>⚠️</Text>
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     </>
                 ) : (
                     <>
                         <Text style={styles.feedbackEmoji}>✋</Text>
                         <Text style={styles.feedbackText}>
-                            Ipakita ang tamang sign sa camera.
+                            Show the sign in front of the camera.
                         </Text>
                     </>
                 )}
-            </View>
+            </Animated.View>
 
             <Modal visible={showIntroModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
-                    <View style={styles.modalCard}>
+                    <Animated.View
+                        style={[
+                            styles.modalCard,
+                            {
+                                transform: [{ scale: modalPop }],
+                            },
+                        ]}
+                    >
+                        <Text style={styles.modalEmoji}>⭐</Text>
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
-                            Ipakita ang tamang FSL sign para sa mga titik A hanggang G.
+                            Ipakita ang tamang FSL sign para sa mga titik T hanggang Z.
                         </Text>
                         <Text style={styles.modalSubText}>
                             Mayroon kang {ROUND_TIME} segundo para makaabot sa {WIN_SCORE} na
@@ -464,28 +584,43 @@ export default function Quiz1Screen() {
                         >
                             <Text style={styles.modalPrimaryButtonText}>OK, Simulan!</Text>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
 
             <Modal visible={showCountdownModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
-                    <View style={styles.countdownCard}>
-                        <Text style={styles.countdownLabel}>Magsisimula sa</Text>
+                    <Animated.View
+                        style={[
+                            styles.countdownCard,
+                            {
+                                transform: [{ scale: modalPop }],
+                            },
+                        ]}
+                    >
+                        <Text style={styles.countdownEmoji}>⏳</Text>
+                        <Text style={styles.countdownLabel}>Starting in</Text>
                         <Text style={styles.countdownNumber}>{countdown}</Text>
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
 
             <Modal visible={showResultModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
-                    <View style={styles.modalCard}>
+                    <Animated.View
+                        style={[
+                            styles.modalCard,
+                            {
+                                transform: [{ scale: modalPop }],
+                            },
+                        ]}
+                    >
                         {didWin ? (
                             <>
                                 <Text style={styles.modalEmoji}>🏆</Text>
                                 <Text style={styles.modalTitle}>Congratulations!</Text>
                                 <Text style={styles.modalText}>
-                                    Naabot mo ang {score} points. Tapos mo na ang Quiz 1!
+                                    Naabot mo ang {score} points. Tapos mo na ang Quiz 4!
                                 </Text>
                                 <Text style={styles.modalSubText}>
                                     Mahusay! Maaari ka nang bumalik sa Home.
@@ -537,7 +672,7 @@ export default function Quiz1Screen() {
                                 </TouchableOpacity>
                             </>
                         )}
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
         </SafeAreaView>
@@ -769,7 +904,7 @@ const styles = StyleSheet.create({
     },
 
     feedbackCard: {
-        minHeight: 50,
+        minHeight: 90,
         backgroundColor: "#FFFFFF",
         borderRadius: 24,
         borderWidth: 4,
