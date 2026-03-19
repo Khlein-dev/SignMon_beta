@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Audio } from "expo-av";
 
 const BATCH_UNLOCK_KEYS = {
     batch2: "quiz1Finished",
@@ -24,7 +23,12 @@ const BATCH_UNLOCK_KEYS = {
     batch8: "quiz7Finished",
 };
 
-export default function RightPanel({ setHat, setDress, setNecklace }) {
+export default function RightPanel({
+    setHat,
+    setDress,
+    setNecklace,
+    onPlaySfx,
+}) {
     const [section, setSection] = useState("hat");
     const [unlockState, setUnlockState] = useState({
         batch1: true,
@@ -38,7 +42,6 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
     });
     const [lockedModalVisible, setLockedModalVisible] = useState(false);
 
-    const soundRef = useRef(null);
     const modalScale = useRef(new Animated.Value(0.88)).current;
     const sectionScale = useRef({
         hat: new Animated.Value(1),
@@ -49,6 +52,30 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
     const itemAnimations = useRef(
         Array.from({ length: 8 }, () => new Animated.Value(0))
     ).current;
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const playPop = useCallback(async () => {
+        try {
+            await onPlaySfx?.();
+        } catch (error) {
+            console.log("Failed to play shared pop sound:", error);
+        }
+    }, [onPlaySfx]);
+
+    const playTriplePop = useCallback(async () => {
+        try {
+            if (!onPlaySfx) return;
+
+            await onPlaySfx();
+            await sleep(140);
+            await onPlaySfx();
+            await sleep(140);
+            await onPlaySfx();
+        } catch (error) {
+            console.log("Failed to play triple pop:", error);
+        }
+    }, [onPlaySfx]);
 
     const loadUnlockState = useCallback(async () => {
         try {
@@ -80,44 +107,9 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
     }, []);
 
     useEffect(() => {
-        let isActive = true;
-
-        const loadSound = async () => {
-            try {
-                const { sound } = await Audio.Sound.createAsync(
-                    require("../assets/images/audio/pop.mp3")
-                );
-
-                if (isActive) {
-                    soundRef.current = sound;
-                } else {
-                    await sound.unloadAsync();
-                }
-            } catch (error) {
-                console.log("Failed to load pop sound:", error);
-            }
-        };
-
-        loadSound();
         loadUnlockState();
-
-        return () => {
-            isActive = false;
-            if (soundRef.current) {
-                soundRef.current.unloadAsync();
-                soundRef.current = null;
-            }
-        };
-    }, [loadUnlockState]);
-
-    const playPop = async () => {
-        try {
-            if (!soundRef.current) return;
-            await soundRef.current.replayAsync();
-        } catch (error) {
-            console.log("Failed to play pop sound:", error);
-        }
-    };
+        playTriplePop();
+    }, [loadUnlockState, playTriplePop]);
 
     const animateSectionPress = (key) => {
         const anim = sectionScale[key];
@@ -349,8 +341,8 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
         section === "hat"
             ? hatItems
             : section === "dress"
-                ? dressItems
-                : necklaceItems;
+            ? dressItems
+            : necklaceItems;
 
     return (
         <View style={styles.rightPanel}>
@@ -461,13 +453,21 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
 
                                         {isLocked && (
                                             <View style={styles.lockBadge}>
-                                                <Ionicons name="lock-closed" size={16} color="#5f4c4c" />
+                                                <Ionicons
+                                                    name="lock-closed"
+                                                    size={16}
+                                                    color="#5f4c4c"
+                                                />
                                             </View>
                                         )}
                                     </View>
 
                                     <View style={styles.imageCircle}>
-                                        <Image source={item.pic} style={styles.itemImage} resizeMode="contain" />
+                                        <Image
+                                            source={item.pic}
+                                            style={styles.itemImage}
+                                            resizeMode="contain"
+                                        />
                                     </View>
 
                                     <Text
@@ -499,7 +499,9 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
                         </View>
 
                         <Text style={styles.modalTitle}>Naka-lock pa</Text>
-                        <Text style={styles.modalText}>Tapusin ang quiz para magamit.</Text>
+                        <Text style={styles.modalText}>
+                            Tapusin ang quiz para magamit.
+                        </Text>
 
                         <TouchableOpacity
                             style={styles.modalButton}
@@ -518,6 +520,7 @@ export default function RightPanel({ setHat, setDress, setNecklace }) {
 function Bubble({ style, color }) {
     return <View style={[styles.bubble, { backgroundColor: color }, style]} />;
 }
+
 
 const styles = StyleSheet.create({
     rightPanel: {
