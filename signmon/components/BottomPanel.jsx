@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Audio } from "expo-av";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -31,7 +30,7 @@ const UNLOCK_RULES = {
     "/lessons/lesson8": "quiz7Finished",
 };
 
-export default function BottomPanel({ visible, onClose }) {
+export default function BottomPanel({ visible, onClose, onPlaySfx }) {
     const [isMounted, setIsMounted] = useState(visible);
     const [lockedModalVisible, setLockedModalVisible] = useState(false);
     const [isLoadingLocks, setIsLoadingLocks] = useState(true);
@@ -53,7 +52,6 @@ export default function BottomPanel({ visible, onClose }) {
     ).current;
     const modalScale = useRef(new Animated.Value(0.9)).current;
     const isClosingRef = useRef(false);
-    const soundRef = useRef(null);
 
     const menuItems = useMemo(
         () => [
@@ -101,45 +99,29 @@ export default function BottomPanel({ visible, onClose }) {
         []
     );
 
-    useEffect(() => {
-        let isActive = true;
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-        const loadSound = async () => {
-            try {
-                const { sound } = await Audio.Sound.createAsync(
-                    require("../assets/images/audio/pop.mp3")
-                );
-
-                if (isActive) {
-                    soundRef.current = sound;
-                } else {
-                    await sound.unloadAsync();
-                }
-            } catch (error) {
-                console.log("Failed to load pop sound:", error);
-            }
-        };
-
-        loadSound();
-
-        return () => {
-            isActive = false;
-
-            if (soundRef.current) {
-                soundRef.current.unloadAsync();
-                soundRef.current = null;
-            }
-        };
-    }, []);
-
-    const playPop = async () => {
+    const playPop = useCallback(async () => {
         try {
-            if (!soundRef.current) return;
-            await soundRef.current.replayAsync();
+            await onPlaySfx?.();
         } catch (error) {
-            console.log("Failed to play pop sound:", error);
+            console.log("Failed to play shared pop sound:", error);
         }
-    };
+    }, [onPlaySfx]);
+
+    const playTriplePop = useCallback(async () => {
+        try {
+            if (!onPlaySfx) return;
+
+            await onPlaySfx();
+            await sleep(140);
+            await onPlaySfx();
+            await sleep(140);
+            await onPlaySfx();
+        } catch (error) {
+            console.log("Failed to play triple pop:", error);
+        }
+    }, [onPlaySfx]);
 
     const loadUnlockStatus = useCallback(async () => {
         try {
@@ -175,7 +157,7 @@ export default function BottomPanel({ visible, onClose }) {
         }
     }, []);
 
-    const animateItemsWithPop = () => {
+    const animateItemsWithPop = useCallback(() => {
         itemAnimations.forEach((anim) => anim.setValue(0));
 
         menuItems.forEach((_, index) => {
@@ -188,7 +170,7 @@ export default function BottomPanel({ visible, onClose }) {
                 }).start();
             }, index * 90);
         });
-    };
+    }, [itemAnimations, menuItems]);
 
     const animateLockedModal = () => {
         modalScale.setValue(0.88);
@@ -204,8 +186,8 @@ export default function BottomPanel({ visible, onClose }) {
         if (visible) {
             isClosingRef.current = false;
             setIsMounted(true);
-
             loadUnlockStatus();
+            playTriplePop();
 
             Animated.parallel([
                 Animated.timing(backdropOpacity, {
@@ -228,7 +210,15 @@ export default function BottomPanel({ visible, onClose }) {
         } else if (isMounted && !isClosingRef.current) {
             closePanel(false);
         }
-    }, [visible, isMounted, backdropOpacity, panelTranslateY, loadUnlockStatus]);
+    }, [
+        visible,
+        isMounted,
+        backdropOpacity,
+        panelTranslateY,
+        loadUnlockStatus,
+        playTriplePop,
+        animateItemsWithPop,
+    ]);
 
     const closePanel = (callOnClose = true) => {
         if (isClosingRef.current) return;
@@ -390,7 +380,11 @@ export default function BottomPanel({ visible, onClose }) {
                                                 </Text>
 
                                                 {isLocked && (
-                                                    <Ionicons name="lock-closed" size={18} color="#5b4b4b" />
+                                                    <Ionicons
+                                                        name="lock-closed"
+                                                        size={18}
+                                                        color="#5b4b4b"
+                                                    />
                                                 )}
                                             </View>
 
