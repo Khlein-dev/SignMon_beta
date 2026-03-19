@@ -12,12 +12,17 @@ import {
 import Slider from "@react-native-community/slider";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Audio } from "expo-av";
 
-export default function LeftPanel({ visible, onClose }) {
-    const [volume, setVolume] = useState(50);
+export default function LeftPanel({
+    visible,
+    onClose,
+    musicVolume = 0.12,
+    sfxVolume = 0.45,
+    onMusicVolumeChange,
+    onSfxVolumeChange,
+}) {
     const [showAboutModal, setShowAboutModal] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
 
@@ -34,7 +39,11 @@ export default function LeftPanel({ visible, onClose }) {
         const loadSound = async () => {
             try {
                 const { sound } = await Audio.Sound.createAsync(
-                    require("../assets/images/audio/pop.mp3")
+                    require("../assets/images/audio/pop.mp3"),
+                    {
+                        volume: sfxVolume,
+                        shouldPlay: false,
+                    }
                 );
 
                 if (isActive) {
@@ -57,6 +66,20 @@ export default function LeftPanel({ visible, onClose }) {
             }
         };
     }, []);
+
+    useEffect(() => {
+        const updateSfxVolume = async () => {
+            try {
+                if (soundRef.current) {
+                    await soundRef.current.setVolumeAsync(sfxVolume);
+                }
+            } catch (error) {
+                console.log("Failed to update pop sound volume:", error);
+            }
+        };
+
+        updateSfxVolume();
+    }, [sfxVolume]);
 
     useEffect(() => {
         if (visible) {
@@ -105,16 +128,11 @@ export default function LeftPanel({ visible, onClose }) {
     const playPop = async () => {
         try {
             if (!soundRef.current) return;
+            await soundRef.current.setVolumeAsync(sfxVolume);
             await soundRef.current.replayAsync();
         } catch (error) {
             console.log("Failed to play pop sound:", error);
         }
-    };
-
-    const goToPage = async (path) => {
-        await playPop();
-        onClose?.();
-        router.push(path);
     };
 
     const handleOpenAbout = async () => {
@@ -165,7 +183,7 @@ export default function LeftPanel({ visible, onClose }) {
                         ]}
                     />
 
-                    <Pressable onPress={() => { }}>
+                    <Pressable onPress={() => {}}>
                         <Animated.View
                             style={[
                                 styles.modalBox,
@@ -201,28 +219,6 @@ export default function LeftPanel({ visible, onClose }) {
                             </View>
 
                             <TouchableOpacity
-                                style={[styles.menuButton, styles.audioButton]}
-                                onPress={() => goToPage("/edit-audio")}
-                                activeOpacity={0.85}
-                            >
-                                <View style={styles.iconBubble}>
-                                    <MaterialIcons
-                                        name="audiotrack"
-                                        size={22}
-                                        color="#17324f"
-                                    />
-                                </View>
-                                <View style={styles.menuTextWrap}>
-                                    <Text style={styles.menuText}>
-                                        Ayusin ang Tunog
-                                    </Text>
-                                    <Text style={styles.menuSubText}>
-                                        Pumili at baguhin ang mga sound effect
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
                                 style={[styles.menuButton, styles.aboutButton]}
                                 onPress={handleOpenAbout}
                                 activeOpacity={0.85}
@@ -248,17 +244,17 @@ export default function LeftPanel({ visible, onClose }) {
                                 <View style={styles.volumeHeader}>
                                     <View style={styles.iconBubble}>
                                         <Ionicons
-                                            name="volume-high"
+                                            name="musical-notes"
                                             size={22}
                                             color="#17324f"
                                         />
                                     </View>
                                     <View style={styles.menuTextWrap}>
                                         <Text style={styles.menuText}>
-                                            Lakas ng Tunog
+                                            Music
                                         </Text>
                                         <Text style={styles.menuSubText}>
-                                            Isaayos ang volume ng app
+                                            Isaayos ang lakas ng background music
                                         </Text>
                                     </View>
                                 </View>
@@ -266,9 +262,10 @@ export default function LeftPanel({ visible, onClose }) {
                                 <Slider
                                     style={styles.slider}
                                     minimumValue={0}
-                                    maximumValue={100}
-                                    value={volume}
-                                    onValueChange={setVolume}
+                                    maximumValue={1}
+                                    step={0.01}
+                                    value={musicVolume}
+                                    onValueChange={onMusicVolumeChange}
                                     minimumTrackTintColor="#5ec6ff"
                                     maximumTrackTintColor="#cfe8ff"
                                     thumbTintColor="#ff7f7f"
@@ -276,7 +273,45 @@ export default function LeftPanel({ visible, onClose }) {
 
                                 <View style={styles.volumeBadge}>
                                     <Text style={styles.volumeText}>
-                                        {Math.round(volume)}%
+                                        {Math.round(musicVolume * 100)}%
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.volumeBox}>
+                                <View style={styles.volumeHeader}>
+                                    <View style={styles.iconBubble}>
+                                        <Ionicons
+                                            name="volume-high"
+                                            size={22}
+                                            color="#17324f"
+                                        />
+                                    </View>
+                                    <View style={styles.menuTextWrap}>
+                                        <Text style={styles.menuText}>
+                                            SFX
+                                        </Text>
+                                        <Text style={styles.menuSubText}>
+                                            Isaayos ang lakas ng button sound
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <Slider
+                                    style={styles.slider}
+                                    minimumValue={0}
+                                    maximumValue={1}
+                                    step={0.01}
+                                    value={sfxVolume}
+                                    onValueChange={onSfxVolumeChange}
+                                    minimumTrackTintColor="#5ec6ff"
+                                    maximumTrackTintColor="#cfe8ff"
+                                    thumbTintColor="#ff7f7f"
+                                />
+
+                                <View style={styles.volumeBadge}>
+                                    <Text style={styles.volumeText}>
+                                        {Math.round(sfxVolume * 100)}%
                                     </Text>
                                 </View>
                             </View>
@@ -307,7 +342,7 @@ export default function LeftPanel({ visible, onClose }) {
                 onRequestClose={handleCloseAbout}
             >
                 <Pressable style={styles.subOverlay} onPress={handleCloseAbout}>
-                    <Pressable onPress={() => { }}>
+                    <Pressable onPress={() => {}}>
                         <Animated.View
                             style={[
                                 styles.subModal,
@@ -364,7 +399,7 @@ export default function LeftPanel({ visible, onClose }) {
                 onRequestClose={handleCloseExit}
             >
                 <Pressable style={styles.subOverlay} onPress={handleCloseExit}>
-                    <Pressable onPress={() => { }}>
+                    <Pressable onPress={() => {}}>
                         <Animated.View
                             style={[
                                 styles.subModal,
@@ -512,10 +547,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
     },
 
-    audioButton: {
-        backgroundColor: "#ffb86c",
-    },
-
     aboutButton: {
         backgroundColor: "#7ed7ff",
     },
@@ -562,11 +593,11 @@ const styles = StyleSheet.create({
     },
 
     volumeBox: {
-        backgroundColor: "#ffffff",
+        backgroundColor: "#fff6d9",
         borderRadius: 22,
         paddingVertical: 14,
         paddingHorizontal: 14,
-        marginBottom: 18,
+        marginBottom: 12,
         borderWidth: 4,
         borderColor: "#000000",
     },
