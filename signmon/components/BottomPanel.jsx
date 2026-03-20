@@ -19,23 +19,36 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-const UNLOCK_RULES = {
-    "/lessons/lesson1": null,
-    "/lessons/lesson2": "quiz1Finished",
-    "/lessons/lesson3": "quiz2Finished",
-    "/lessons/lesson4": "quiz3Finished",
-    "/lessons/lesson5": "quiz4Finished",
-    "/lessons/lesson6": "quiz5Finished",
-    "/lessons/lesson7": "quiz6Finished",
-    "/lessons/lesson8": "quiz7Finished",
-};
+const QUIZ_KEYS = [
+    "quiz1Finished",
+    "quiz2Finished",
+    "quiz3Finished",
+    "quiz4Finished",
+    "quiz5Finished",
+    "quiz6Finished",
+    "quiz7Finished",
+];
+
+const getSeenKey = (route) => `lessonUnlockedSeen:${route}`;
 
 export default function BottomPanel({ visible, onClose, onPlaySfx }) {
     const [isMounted, setIsMounted] = useState(visible);
     const [lockedModalVisible, setLockedModalVisible] = useState(false);
     const [isLoadingLocks, setIsLoadingLocks] = useState(true);
+
     const [unlockedMap, setUnlockedMap] = useState({
         "/lessons/lesson1": true,
+        "/lessons/lesson2": false,
+        "/lessons/lesson3": false,
+        "/lessons/lesson4": false,
+        "/lessons/lesson5": false,
+        "/lessons/lesson6": false,
+        "/lessons/lesson7": false,
+        "/lessons/lesson8": false,
+    });
+
+    const [newlyUnlockedMap, setNewlyUnlockedMap] = useState({
+        "/lessons/lesson1": false,
         "/lessons/lesson2": false,
         "/lessons/lesson3": false,
         "/lessons/lesson4": false,
@@ -51,6 +64,7 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
         Array.from({ length: 8 }, () => new Animated.Value(0))
     ).current;
     const modalScale = useRef(new Animated.Value(0.9)).current;
+    const badgePulse = useRef(new Animated.Value(0)).current;
     const isClosingRef = useRef(false);
 
     const menuItems = useMemo(
@@ -59,41 +73,49 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                 label: "Alpabeto A–G",
                 route: "/lessons/lesson1",
                 letters: "A, B, C, D, E, F, G",
+                icon: "school",
             },
             {
                 label: "Alpabeto H–N",
                 route: "/lessons/lesson2",
                 letters: "H, I, J, K, L, M, N",
+                icon: "book",
             },
             {
                 label: "Alpabeto Ñ–S",
                 route: "/lessons/lesson3",
                 letters: "Ñ, Ng, O, P, Q, R, S",
+                icon: "library",
             },
             {
                 label: "Alpabeto T–Z",
                 route: "/lessons/lesson4",
                 letters: "T, U, V, W, X, Y, Z",
+                icon: "color-wand",
             },
             {
                 label: "Mga Numero",
                 route: "/lessons/lesson5",
                 letters: "1, 2, 3, 4, 5...",
+                icon: "calculator",
             },
             {
                 label: "Mga Kulay",
                 route: "/lessons/lesson6",
                 letters: "Pula, Asul, Dilaw...",
+                icon: "color-palette",
             },
             {
                 label: "Ang Aking Pamilya",
                 route: "/lessons/lesson7",
                 letters: "Nanay, Tatay, Kuya...",
+                icon: "people",
             },
             {
                 label: "Anong Araw Na?",
                 route: "/lessons/lesson8",
                 letters: "Lunes hanggang Linggo",
+                icon: "calendar",
             },
         ],
         []
@@ -112,7 +134,6 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
     const playTriplePop = useCallback(async () => {
         try {
             if (!onPlaySfx) return;
-
             await onPlaySfx();
             await sleep(140);
             await onPlaySfx();
@@ -123,24 +144,45 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
         }
     }, [onPlaySfx]);
 
+    const startBadgeAnimation = useCallback(() => {
+        badgePulse.setValue(0);
+
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(badgePulse, {
+                    toValue: 1,
+                    duration: 700,
+                    easing: Easing.out(Easing.quad),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(badgePulse, {
+                    toValue: 0,
+                    duration: 700,
+                    easing: Easing.inOut(Easing.quad),
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, [badgePulse]);
+
     const loadUnlockStatus = useCallback(async () => {
         try {
             setIsLoadingLocks(true);
 
-            const keys = [
-                "quiz1Finished",
-                "quiz2Finished",
-                "quiz3Finished",
-                "quiz4Finished",
-                "quiz5Finished",
-                "quiz6Finished",
-                "quiz7Finished",
+            const seenKeys = [
+                getSeenKey("/lessons/lesson2"),
+                getSeenKey("/lessons/lesson3"),
+                getSeenKey("/lessons/lesson4"),
+                getSeenKey("/lessons/lesson5"),
+                getSeenKey("/lessons/lesson6"),
+                getSeenKey("/lessons/lesson7"),
+                getSeenKey("/lessons/lesson8"),
             ];
 
-            const entries = await AsyncStorage.multiGet(keys);
+            const entries = await AsyncStorage.multiGet([...QUIZ_KEYS, ...seenKeys]);
             const values = Object.fromEntries(entries);
 
-            setUnlockedMap({
+            const nextUnlockedMap = {
                 "/lessons/lesson1": true,
                 "/lessons/lesson2": values.quiz1Finished === "true",
                 "/lessons/lesson3": values.quiz2Finished === "true",
@@ -149,7 +191,35 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                 "/lessons/lesson6": values.quiz5Finished === "true",
                 "/lessons/lesson7": values.quiz6Finished === "true",
                 "/lessons/lesson8": values.quiz7Finished === "true",
-            });
+            };
+
+            const nextNewlyUnlockedMap = {
+                "/lessons/lesson1": false,
+                "/lessons/lesson2":
+                    nextUnlockedMap["/lessons/lesson2"] &&
+                    values[getSeenKey("/lessons/lesson2")] !== "true",
+                "/lessons/lesson3":
+                    nextUnlockedMap["/lessons/lesson3"] &&
+                    values[getSeenKey("/lessons/lesson3")] !== "true",
+                "/lessons/lesson4":
+                    nextUnlockedMap["/lessons/lesson4"] &&
+                    values[getSeenKey("/lessons/lesson4")] !== "true",
+                "/lessons/lesson5":
+                    nextUnlockedMap["/lessons/lesson5"] &&
+                    values[getSeenKey("/lessons/lesson5")] !== "true",
+                "/lessons/lesson6":
+                    nextUnlockedMap["/lessons/lesson6"] &&
+                    values[getSeenKey("/lessons/lesson6")] !== "true",
+                "/lessons/lesson7":
+                    nextUnlockedMap["/lessons/lesson7"] &&
+                    values[getSeenKey("/lessons/lesson7")] !== "true",
+                "/lessons/lesson8":
+                    nextUnlockedMap["/lessons/lesson8"] &&
+                    values[getSeenKey("/lessons/lesson8")] !== "true",
+            };
+
+            setUnlockedMap(nextUnlockedMap);
+            setNewlyUnlockedMap(nextNewlyUnlockedMap);
         } catch (error) {
             console.log("Failed to load unlock status:", error);
         } finally {
@@ -181,6 +251,10 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
             useNativeDriver: true,
         }).start();
     };
+
+    useEffect(() => {
+        startBadgeAnimation();
+    }, [startBadgeAnimation]);
 
     useEffect(() => {
         if (visible) {
@@ -246,6 +320,18 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
         });
     };
 
+    const markLessonAsSeen = useCallback(async (route) => {
+        try {
+            await AsyncStorage.setItem(getSeenKey(route), "true");
+            setNewlyUnlockedMap((prev) => ({
+                ...prev,
+                [route]: false,
+            }));
+        } catch (error) {
+            console.log("Failed to mark lesson as seen:", error);
+        }
+    }, []);
+
     const handlePressItem = async (route) => {
         await playPop();
 
@@ -257,6 +343,10 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
             setLockedModalVisible(true);
             animateLockedModal();
             return;
+        }
+
+        if (newlyUnlockedMap[route]) {
+            await markLessonAsSeen(route);
         }
 
         closePanel(true);
@@ -275,6 +365,16 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
         await playPop();
         setLockedModalVisible(false);
     };
+
+    const badgeScale = badgePulse.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.08],
+    });
+
+    const badgeRotate = badgePulse.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0deg", "-4deg"],
+    });
 
     if (!isMounted) return null;
 
@@ -305,6 +405,11 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                     end={{ x: 0.5, y: 1 }}
                     style={StyleSheet.absoluteFillObject}
                 />
+
+                <View style={styles.headerBubbleOne} />
+                <View style={styles.headerBubbleTwo} />
+                <View style={styles.headerBubbleThree} />
+                <View style={styles.headerBubbleFour} />
 
                 <View style={styles.handle} />
 
@@ -349,6 +454,7 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
 
                                 const isUnlocked = unlockedMap[item.route] === true;
                                 const isLocked = !isUnlocked;
+                                const isNew = newlyUnlockedMap[item.route] === true;
 
                                 return (
                                     <Animated.View
@@ -366,32 +472,112 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                                             style={({ pressed }) => [
                                                 styles.gridButton,
                                                 isLocked && styles.gridButtonLocked,
+                                                isNew && styles.gridButtonNew,
                                                 pressed && styles.gridButtonPressed,
                                             ]}
                                         >
-                                            <View style={styles.lessonTopRow}>
-                                                <Text
+                                            <View
+                                                style={[
+                                                    styles.cardBubble,
+                                                    styles.cardBubbleSmall,
+                                                    styles.cardBubbleBlue,
+                                                ]}
+                                            />
+                                            <View
+                                                style={[
+                                                    styles.cardBubble,
+                                                    styles.cardBubbleMedium,
+                                                    isNew
+                                                        ? styles.cardBubbleMint
+                                                        : styles.cardBubblePink,
+                                                ]}
+                                            />
+                                            <View
+                                                style={[
+                                                    styles.cardBubble,
+                                                    styles.cardBubbleLarge,
+                                                    isLocked
+                                                        ? styles.cardBubbleGray
+                                                        : isNew
+                                                        ? styles.cardBubbleLime
+                                                        : styles.cardBubbleYellow,
+                                                ]}
+                                            />
+                                            <View
+                                                style={[
+                                                    styles.cardBubble,
+                                                    styles.cardBubbleTiny,
+                                                    styles.cardBubblePurple,
+                                                ]}
+                                            />
+
+                                            {isNew && (
+                                                <Animated.View
                                                     style={[
-                                                        styles.lessonBadge,
-                                                        isLocked && styles.lessonBadgeLocked,
+                                                        styles.newBadge,
+                                                        {
+                                                            transform: [
+                                                                { scale: badgeScale },
+                                                                { rotate: badgeRotate },
+                                                            ],
+                                                        },
                                                     ]}
                                                 >
-                                                    Lesson {index + 1}
-                                                </Text>
-
-                                                {isLocked && (
                                                     <Ionicons
-                                                        name="lock-closed"
-                                                        size={18}
-                                                        color="#5b4b4b"
+                                                        name="sparkles"
+                                                        size={12}
+                                                        color="#ffffff"
+                                                        style={styles.newBadgeIcon}
                                                     />
-                                                )}
+                                                    <Text style={styles.newBadgeText}>Bago</Text>
+                                                </Animated.View>
+                                            )}
+
+                                            <View style={styles.lessonTopRow}>
+                                                <View
+                                                    style={[
+                                                        styles.lessonBadgePill,
+                                                        isLocked && styles.lessonBadgePillLocked,
+                                                        isNew && styles.lessonBadgePillNew,
+                                                    ]}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.lessonBadge,
+                                                            isLocked && styles.lessonBadgeLocked,
+                                                            isNew && styles.lessonBadgeNewText,
+                                                        ]}
+                                                    >
+                                                        Lesson {index + 1}
+                                                    </Text>
+                                                </View>
+
+                                                <View
+                                                    style={[
+                                                        styles.iconCircle,
+                                                        isLocked && styles.iconCircleLocked,
+                                                        isNew && styles.iconCircleNew,
+                                                    ]}
+                                                >
+                                                    <Ionicons
+                                                        name={isLocked ? "lock-closed" : item.icon}
+                                                        size={18}
+                                                        color={
+                                                            isLocked
+                                                                ? "#5b4b4b"
+                                                                : isNew
+                                                                ? "#0C5B40"
+                                                                : "#4a2d00"
+                                                        }
+                                                    />
+                                                </View>
                                             </View>
 
                                             <Text
                                                 style={[
                                                     styles.gridButtonText,
                                                     isLocked && styles.gridButtonTextLocked,
+                                                    isNew && styles.gridButtonTextNew,
                                                 ]}
                                             >
                                                 {item.label}
@@ -401,6 +587,7 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                                                 style={[
                                                     styles.gridButtonSubtext,
                                                     isLocked && styles.gridButtonSubtextLocked,
+                                                    isNew && styles.gridButtonSubtextNew,
                                                 ]}
                                             >
                                                 {item.letters}
@@ -462,7 +649,7 @@ const styles = StyleSheet.create({
         top: 70,
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
-        borderBlockColor: "#000000",
+        borderColor: "#000000",
         borderWidth: 4,
         overflow: "hidden",
         zIndex: 999,
@@ -470,6 +657,46 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingHorizontal: 16,
         paddingBottom: 20,
+    },
+
+    headerBubbleOne: {
+        position: "absolute",
+        top: -10,
+        right: 20,
+        width: 120,
+        height: 120,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.08)",
+    },
+
+    headerBubbleTwo: {
+        position: "absolute",
+        top: 55,
+        left: -10,
+        width: 58,
+        height: 58,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,214,102,0.18)",
+    },
+
+    headerBubbleThree: {
+        position: "absolute",
+        top: 120,
+        right: 100,
+        width: 42,
+        height: 42,
+        borderRadius: 999,
+        backgroundColor: "rgba(125,211,252,0.18)",
+    },
+
+    headerBubbleFour: {
+        position: "absolute",
+        top: 30,
+        right: 135,
+        width: 24,
+        height: 24,
+        borderRadius: 999,
+        backgroundColor: "rgba(167,139,250,0.16)",
     },
 
     handle: {
@@ -554,19 +781,19 @@ const styles = StyleSheet.create({
     },
 
     gridButton: {
-        minHeight: 128,
+        minHeight: 142,
         backgroundColor: "#ffbe55",
         justifyContent: "center",
-        alignItems: "center",
         borderRadius: 28,
         borderColor: "#5a3900",
         borderWidth: 4,
         paddingVertical: 18,
-        paddingHorizontal: 12,
+        paddingHorizontal: 14,
         shadowColor: "#000",
         shadowOpacity: 0.18,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
+        overflow: "hidden",
     },
 
     gridButtonLocked: {
@@ -574,9 +801,103 @@ const styles = StyleSheet.create({
         borderColor: "#8a817c",
     },
 
+    gridButtonNew: {
+        backgroundColor: "#8CF0B5",
+        borderColor: "#0C5B40",
+        shadowOpacity: 0.22,
+    },
+
     gridButtonPressed: {
         transform: [{ scale: 0.97 }],
-        opacity: 0.92,
+        opacity: 0.94,
+    },
+
+    cardBubble: {
+        position: "absolute",
+        borderRadius: 999,
+        opacity: 0.33,
+    },
+
+    cardBubbleSmall: {
+        width: 38,
+        height: 38,
+        top: 12,
+        right: 12,
+    },
+
+    cardBubbleMedium: {
+        width: 56,
+        height: 56,
+        bottom: -8,
+        right: 14,
+    },
+
+    cardBubbleLarge: {
+        width: 78,
+        height: 78,
+        top: 38,
+        left: -16,
+    },
+
+    cardBubbleTiny: {
+        width: 22,
+        height: 22,
+        top: 44,
+        right: 38,
+    },
+
+    cardBubbleBlue: {
+        backgroundColor: "#93C5FD",
+    },
+
+    cardBubblePink: {
+        backgroundColor: "#F9A8D4",
+    },
+
+    cardBubbleYellow: {
+        backgroundColor: "#FDE68A",
+    },
+
+    cardBubblePurple: {
+        backgroundColor: "#C4B5FD",
+    },
+
+    cardBubbleMint: {
+        backgroundColor: "#A7F3D0",
+    },
+
+    cardBubbleLime: {
+        backgroundColor: "#D9F99D",
+    },
+
+    cardBubbleGray: {
+        backgroundColor: "#E7E5E4",
+    },
+
+    newBadge: {
+        position: "absolute",
+        top: 10,
+        right: 10,
+        zIndex: 5,
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#22B07D",
+        borderWidth: 3,
+        borderColor: "#0C5B40",
+        borderRadius: 999,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+
+    newBadgeIcon: {
+        marginRight: 4,
+    },
+
+    newBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 12,
+        fontFamily: "HeyComic",
+        lineHeight: 14,
     },
 
     lessonTopRow: {
@@ -584,17 +905,62 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 6,
+        marginBottom: 10,
+        zIndex: 2,
+    },
+
+    lessonBadgePill: {
+        backgroundColor: "rgba(255,247,218,0.72)",
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderWidth: 2,
+        borderColor: "rgba(90,57,0,0.28)",
+    },
+
+    lessonBadgePillLocked: {
+        backgroundColor: "rgba(255,255,255,0.5)",
+        borderColor: "rgba(91,75,75,0.25)",
+    },
+
+    lessonBadgePillNew: {
+        backgroundColor: "rgba(255,255,255,0.72)",
+        borderColor: "rgba(12,91,64,0.18)",
     },
 
     lessonBadge: {
         color: "#4a2d00",
-        fontSize: 14,
+        fontSize: 13,
         fontFamily: "HeyComic",
     },
 
     lessonBadgeLocked: {
         color: "#5b4b4b",
+    },
+
+    lessonBadgeNewText: {
+        color: "#0C5B40",
+    },
+
+    iconCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255,247,218,0.75)",
+        borderWidth: 2,
+        borderColor: "rgba(90,57,0,0.28)",
+    },
+
+    iconCircleLocked: {
+        backgroundColor: "rgba(255,255,255,0.5)",
+        borderColor: "rgba(91,75,75,0.25)",
+    },
+
+    iconCircleNew: {
+        backgroundColor: "rgba(255,255,255,0.72)",
+        borderColor: "rgba(12,91,64,0.2)",
     },
 
     gridButtonText: {
@@ -603,10 +969,15 @@ const styles = StyleSheet.create({
         fontFamily: "HeyComic",
         marginBottom: 6,
         textAlign: "center",
+        zIndex: 2,
     },
 
     gridButtonTextLocked: {
         color: "#4f4a46",
+    },
+
+    gridButtonTextNew: {
+        color: "#084C35",
     },
 
     gridButtonSubtext: {
@@ -615,10 +986,15 @@ const styles = StyleSheet.create({
         fontFamily: "HeyComic",
         textAlign: "center",
         lineHeight: 18,
+        zIndex: 2,
     },
 
     gridButtonSubtextLocked: {
         color: "#6b6460",
+    },
+
+    gridButtonSubtextNew: {
+        color: "#136149",
     },
 
     modalBackdrop: {
