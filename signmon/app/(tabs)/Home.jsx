@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -9,31 +9,113 @@ import {
     Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Audio } from "expo-av";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import BottomPanel from "../../components/BottomPanel";
 import LeftPanel from "../../components/LeftPanel";
 import RightPanel from "../../components/RightPanel";
 import Pet from "../../components/Pet";
 import Stats from "../../components/StatsBar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Reward from "../../components/Reward";
 
-// ICONS
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function Home() {
-    const [openPanel, setOpenPanel] = useState(null); // "left" | "right" | "bottom" | null
+    const [openPanel, setOpenPanel] = useState(null);
 
     const [hat, setHat] = useState(null);
     const [dress, setDress] = useState(null);
     const [necklace, setNecklace] = useState(null);
 
+    const [musicVolume, setMusicVolume] = useState(0.12);
+    const [sfxVolume, setSfxVolume] = useState(0.45);
+
+    const musicVolumeRef = useRef(0.12);
+    const sfxVolumeRef = useRef(0.45);
+
     const settingsScale = useRef(new Animated.Value(1)).current;
     const wardrobeScale = useRef(new Animated.Value(1)).current;
     const learnScale = useRef(new Animated.Value(1)).current;
     const gearRotate = useRef(new Animated.Value(0)).current;
+
+    const bgSoundRef = useRef(null);
+    const popSoundRef = useRef(null);
+    const isStartingBgRef = useRef(false);
+
+    useEffect(() => {
+        const loadSavedVolumes = async () => {
+            try {
+                const savedMusic = await AsyncStorage.getItem("musicVolume");
+                const savedSfx = await AsyncStorage.getItem("sfxVolume");
+
+                if (savedMusic !== null) {
+                    const value = Number(savedMusic);
+                    setMusicVolume(value);
+                    musicVolumeRef.current = value;
+                }
+
+                if (savedSfx !== null) {
+                    const value = Number(savedSfx);
+                    setSfxVolume(value);
+                    sfxVolumeRef.current = value;
+                }
+            } catch (error) {
+                console.log("Error loading saved volume settings:", error);
+            }
+        };
+
+        loadSavedVolumes();
+
+        return () => {
+            if (bgSoundRef.current) {
+                bgSoundRef.current.unloadAsync();
+                bgSoundRef.current = null;
+            }
+
+            if (popSoundRef.current) {
+                popSoundRef.current.unloadAsync();
+                popSoundRef.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        musicVolumeRef.current = musicVolume;
+        AsyncStorage.setItem("musicVolume", String(musicVolume));
+
+        const updateMusicVolume = async () => {
+            try {
+                if (bgSoundRef.current) {
+                    await bgSoundRef.current.setVolumeAsync(musicVolume);
+                }
+            } catch (error) {
+                console.log("Error updating music volume:", error);
+            }
+        };
+
+        updateMusicVolume();
+    }, [musicVolume]);
+
+    useEffect(() => {
+        sfxVolumeRef.current = sfxVolume;
+        AsyncStorage.setItem("sfxVolume", String(sfxVolume));
+
+        const updateSfxVolume = async () => {
+            try {
+                if (popSoundRef.current) {
+                    await popSoundRef.current.setVolumeAsync(sfxVolume);
+                }
+            } catch (error) {
+                console.log("Error updating sfx volume:", error);
+            }
+        };
+
+        updateSfxVolume();
+    }, [sfxVolume]);
 
     const closePanels = () => {
         setOpenPanel(null);
@@ -65,18 +147,101 @@ export default function Home() {
         }).start();
     };
 
-    const openLeftPanel = () => {
+    const stopBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current) {
+                const sound = bgSoundRef.current;
+                bgSoundRef.current = null;
+                await sound.stopAsync();
+                await sound.unloadAsync();
+            }
+        } catch (error) {
+            console.log("Error stopping background music:", error);
+        }
+    }, []);
+
+    const playBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current || isStartingBgRef.current) {
+                return;
+            }
+
+            isStartingBgRef.current = true;
+
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: false,
+                shouldDuckAndroid: true,
+            });
+
+            const { sound } = await Audio.Sound.createAsync(
+                require("../../assets/images/audio/mainTheme.mp3"),
+                {
+                    shouldPlay: true,
+                    isLooping: true,
+                    volume: musicVolumeRef.current,
+                }
+            );
+
+            // If user already left Home while sound was loading, clean it up
+            if (bgSoundRef.current) {
+                await sound.unloadAsync();
+            } else {
+                bgSoundRef.current = sound;
+            }
+        } catch (error) {
+            console.log("Error loading background music:", error);
+        } finally {
+            isStartingBgRef.current = false;
+        }
+    }, []);
+
+    const playPopSound = useCallback(async () => {
+        try {
+            if (!popSoundRef.current) {
+                const { sound } = await Audio.Sound.createAsync(
+                    require("../../assets/images/audio/pop.mp3"),
+                    {
+                        shouldPlay: false,
+                        volume: sfxVolumeRef.current,
+                    }
+                );
+
+                popSoundRef.current = sound;
+            }
+
+            await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            await popSoundRef.current.replayAsync();
+        } catch (error) {
+            console.log("Error playing pop sound:", error);
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            playBackgroundMusic();
+
+            return () => {
+                stopBackgroundMusic();
+            };
+        }, [playBackgroundMusic, stopBackgroundMusic])
+    );
+
+    const openLeftPanel = async () => {
+        await playPopSound();
         animatePop(settingsScale);
         spinGear();
         setOpenPanel("left");
     };
 
-    const openRightPanel = () => {
+    const openRightPanel = async () => {
+        await playPopSound();
         animatePop(wardrobeScale);
         setOpenPanel("right");
     };
 
-    const openBottomPanel = () => {
+    const openBottomPanel = async () => {
+        await playPopSound();
         animatePop(learnScale, 0.95);
         setOpenPanel("bottom");
     };
@@ -108,7 +273,13 @@ export default function Home() {
         }
     };
 
-    const handleBottomNavigate = (route) => {
+    const handleResetPress = async () => {
+        await playPopSound();
+        await clearProgress();
+    };
+
+    const handleBottomNavigate = async (route) => {
+        await playPopSound();
         setOpenPanel(null);
         console.log("Navigate to:", route);
     };
@@ -120,7 +291,7 @@ export default function Home() {
 
     return (
         <ImageBackground
-            source={require("../../assets/images/backgroundCONDE.png")}
+            source={require("../../assets/images/background.png")}
             style={styles.container}
         >
             <View style={styles.softBubbleOne} />
@@ -128,10 +299,8 @@ export default function Home() {
             <View style={styles.softBubbleThree} />
 
             <Stats />
-
             <Pet hat={hat} dress={dress} necklace={necklace} />
 
-            {/* LEFT BUTTON */}
             <Animated.View
                 style={[
                     styles.leftButtonWrap,
@@ -143,14 +312,15 @@ export default function Home() {
                     onPress={openLeftPanel}
                     activeOpacity={0.88}
                 >
-                    <Animated.View style={{ transform: [{ rotate: gearRotateInterpolate }] }}>
+                    <Animated.View
+                        style={{ transform: [{ rotate: gearRotateInterpolate }] }}
+                    >
                         <FontAwesome name="gear" size={46} color="#1b1208" />
                     </Animated.View>
                     <Text style={styles.sideButtonLabel}>Ayos</Text>
                 </TouchableOpacity>
             </Animated.View>
 
-            {/* RIGHT BUTTON */}
             <Animated.View
                 style={[
                     styles.rightButtonWrap,
@@ -162,12 +332,15 @@ export default function Home() {
                     onPress={openRightPanel}
                     activeOpacity={0.88}
                 >
-                    <MaterialCommunityIcons name="hanger" size={48} color="#2c1600" />
+                    <MaterialCommunityIcons
+                        name="hanger"
+                        size={48}
+                        color="#2c1600"
+                    />
                     <Text style={styles.sideButtonLabel}>Damit</Text>
                 </TouchableOpacity>
             </Animated.View>
 
-            {/* BOTTOM BUTTON */}
             <Animated.View
                 style={[
                     styles.learningButtonWrap,
@@ -179,7 +352,6 @@ export default function Home() {
                     activeOpacity={0.9}
                     style={styles.learnButton}
                 >
-
                     <LinearGradient
                         colors={["#2b6cb0", "#184a8c", "#0d2f5e"]}
                         start={{ x: 0.5, y: 0 }}
@@ -201,15 +373,19 @@ export default function Home() {
                 </TouchableOpacity>
             </Animated.View>
 
-            {/* LEFT PANEL */}
-            <LeftPanel visible={openPanel === "left"} onClose={closePanels} />
+            <LeftPanel
+                visible={openPanel === "left"}
+                onClose={closePanels}
+                musicVolume={musicVolume}
+                sfxVolume={sfxVolume}
+                onMusicVolumeChange={setMusicVolume}
+                onSfxVolumeChange={setSfxVolume}
+            />
 
-            {/* BACKDROP - only for right */}
             {openPanel === "right" && (
                 <Pressable style={styles.backdrop} onPress={closePanels} />
             )}
 
-            {/* RIGHT PANEL */}
             {openPanel === "right" && (
                 <View style={styles.panelWrapper} pointerEvents="box-none">
                     <View style={styles.panelContent}>
@@ -217,29 +393,29 @@ export default function Home() {
                             setHat={setHat}
                             setDress={setDress}
                             setNecklace={setNecklace}
+                            onPlaySfx={playPopSound}
+
                         />
                     </View>
                 </View>
             )}
 
-            {/* DATA RESET BUTTON - DELETE ONCE DONE */}
             <TouchableOpacity
-                onPress={clearProgress}
+                onPress={handleResetPress}
                 style={styles.resetButton}
                 activeOpacity={0.85}
             >
                 <Text style={styles.resetButtonText}>RESET PROGRESS</Text>
             </TouchableOpacity>
 
-            {/* BOTTOM PANEL */}
             <BottomPanel
                 visible={openPanel === "bottom"}
                 onClose={closePanels}
                 onNavigate={handleBottomNavigate}
+                onPlaySfx={playPopSound}
             />
 
             <Reward />
-
         </ImageBackground>
     );
 }
@@ -305,10 +481,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         backgroundColor: "#08707a",
         paddingTop: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
     },
 
     rightButton: {
@@ -321,10 +493,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         backgroundColor: "#e67b2e",
         paddingTop: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
     },
 
     sideButtonLabel: {
@@ -352,10 +520,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingVertical: 16,
         overflow: "hidden",
-        shadowColor: "#000",
-        shadowOpacity: 0.22,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 5 },
     },
 
     learnBubbleOne: {
@@ -415,9 +579,6 @@ const styles = StyleSheet.create({
         fontFamily: "HeyComic",
         fontSize: 35,
         lineHeight: 45,
-        textShadowColor: "rgba(0,0,0,0.18)",
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 2,
     },
 
     learnSubtitle: {
