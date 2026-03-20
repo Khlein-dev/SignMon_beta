@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -6,10 +6,11 @@ import {
     TouchableOpacity,
     SafeAreaView,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Audio } from "expo-av";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Lesson2() {
     const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
@@ -53,35 +54,26 @@ export default function Lesson2() {
         playerInstance.muted = true;
     });
 
-    const soundRef = useRef(null);
+    const popSoundRef = useRef(null);
+    const bgSoundRef = useRef(null);
+    const isStartingBgRef = useRef(false);
+
+    const musicVolumeRef = useRef(0.12);
+    const sfxVolumeRef = useRef(0.45);
+
+    // Keeps lesson theme quiet even when music slider is maxed
+    const LESSON_THEME_CAP = 0.2;
 
     useEffect(() => {
-        let isActive = true;
-
-        const loadSound = async () => {
-            try {
-                const { sound } = await Audio.Sound.createAsync(
-                    require("../../../assets/images/audio/pop.mp3")
-                );
-
-                if (isActive) {
-                    soundRef.current = sound;
-                } else {
-                    await sound.unloadAsync();
-                }
-            } catch (error) {
-                console.log("Failed to load pop sound:", error);
-            }
-        };
-
-        loadSound();
-
         return () => {
-            isActive = false;
+            if (popSoundRef.current) {
+                popSoundRef.current.unloadAsync();
+                popSoundRef.current = null;
+            }
 
-            if (soundRef.current) {
-                soundRef.current.unloadAsync();
-                soundRef.current = null;
+            if (bgSoundRef.current) {
+                bgSoundRef.current.unloadAsync();
+                bgSoundRef.current = null;
             }
         };
     }, []);
@@ -94,14 +86,146 @@ export default function Lesson2() {
         }
     }, [currentIndex, lessonVideos, player]);
 
-    const playPop = async () => {
+    const loadSavedAudioSettings = useCallback(async () => {
         try {
-            if (!soundRef.current) return;
-            await soundRef.current.replayAsync();
+            const [savedMusicVolume, savedSfxVolume] = await AsyncStorage.multiGet([
+                "musicVolume",
+                "sfxVolume",
+            ]);
+
+            const musicValue =
+                savedMusicVolume?.[1] !== null ? Number(savedMusicVolume[1]) : 0.12;
+            const sfxValue =
+                savedSfxVolume?.[1] !== null ? Number(savedSfxVolume[1]) : 0.45;
+
+            musicVolumeRef.current = Number.isFinite(musicValue) ? musicValue : 0.12;
+            sfxVolumeRef.current = Number.isFinite(sfxValue) ? sfxValue : 0.45;
+
+            if (popSoundRef.current) {
+                await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (bgSoundRef.current) {
+                await bgSoundRef.current.setVolumeAsync(
+                    musicVolumeRef.current * LESSON_THEME_CAP
+                );
+            }
+        } catch (error) {
+            console.log("Failed to load audio settings:", error);
+            musicVolumeRef.current = 0.12;
+            sfxVolumeRef.current = 0.45;
+        }
+    }, []);
+
+    const ensurePopLoaded = useCallback(async () => {
+        try {
+            if (popSoundRef.current) {
+                await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+                return;
+            }
+
+            const { sound } = await Audio.Sound.createAsync(
+                require("../../../assets/images/audio/pop.mp3"),
+                {
+                    shouldPlay: false,
+                    volume: sfxVolumeRef.current,
+                }
+            );
+
+            popSoundRef.current = sound;
+        } catch (error) {
+            console.log("Failed to load pop sound:", error);
+        }
+    }, []);
+
+    const playPop = useCallback(async () => {
+        try {
+            await loadSavedAudioSettings();
+            await ensurePopLoaded();
+
+            if (!popSoundRef.current) return;
+
+            await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            await popSoundRef.current.replayAsync();
         } catch (error) {
             console.log("Failed to play pop sound:", error);
         }
-    };
+    }, [ensurePopLoaded, loadSavedAudioSettings]);
+
+    const stopBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current) {
+                const sound = bgSoundRef.current;
+                bgSoundRef.current = null;
+                await sound.stopAsync();
+                await sound.unloadAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop lesson theme:", error);
+        }
+    }, []);
+
+    const playBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current || isStartingBgRef.current) return;
+
+            isStartingBgRef.current = true;
+
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: false,
+                shouldDuckAndroid: true,
+            });
+
+            const effectiveLessonVolume = musicVolumeRef.current * LESSON_THEME_CAP;
+
+            const { sound } = await Audio.Sound.createAsync(
+                require("../../../assets/images/audio/lessonTheme.mp3"),
+                {
+                    shouldPlay: true,
+                    isLooping: true,
+                    volume: effectiveLessonVolume,
+                }
+            );
+
+            if (bgSoundRef.current) {
+                await sound.unloadAsync();
+            } else {
+                bgSoundRef.current = sound;
+            }
+        } catch (error) {
+            console.log("Failed to play lesson theme:", error);
+        } finally {
+            isStartingBgRef.current = false;
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            let active = true;
+
+            const startAudio = async () => {
+                await loadSavedAudioSettings();
+                await ensurePopLoaded();
+
+                if (active) {
+                    await playBackgroundMusic();
+                }
+            };
+
+            startAudio();
+
+            return () => {
+                active = false;
+                stopBackgroundMusic();
+            };
+        }, [
+            ensurePopLoaded,
+            loadSavedAudioSettings,
+            playBackgroundMusic,
+            stopBackgroundMusic,
+        ])
+    );
 
     const isIntro = currentIndex === -1;
     const isLastVideo = currentIndex === lessonVideos.length - 1;
