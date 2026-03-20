@@ -7,13 +7,16 @@ import {
     SafeAreaView,
     ActivityIndicator,
     Modal,
+    Animated,
+    Easing,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Audio } from "expo-av";
 
-const LETTERS = ["A", "B", "C", "D", "F",];
+const LETTERS = ["A", "B", "C", "D", "F"];
 const API_URL = "http://192.168.1.2:8000/detect-sign/quiz1";
 
 const DETECTION_INTERVAL = 50;
@@ -25,6 +28,9 @@ const QUIZ_FINISHED_KEY = "quiz1Finished";
 const REVIEW_ROUTE = "/lessons/lesson1";
 const HOME_ROUTE = "/Home";
 
+// keeps quiz theme quiet even if music slider is maxed
+const QUIZ_THEME_CAP = 0.16;
+
 export default function Quiz1Screen() {
     const cameraRef = useRef(null);
     const detectIntervalRef = useRef(null);
@@ -32,13 +38,23 @@ export default function Quiz1Screen() {
     const countdownTimerRef = useRef(null);
     const nextRoundTimeoutRef = useRef(null);
 
+    const bgSoundRef = useRef(null);
+    const popSoundRef = useRef(null);
+    const tickSoundRef = useRef(null);
+    const whistleSoundRef = useRef(null);
+    const correctSoundRef = useRef(null);
+    const isStartingBgRef = useRef(false);
+
+    const musicVolumeRef = useRef(0.12);
+    const sfxVolumeRef = useRef(0.45);
+
     const [permission, requestPermission] = useCameraPermissions();
     const [cameraReady, setCameraReady] = useState(false);
 
     const initialLetter = useMemo(() => getRandomLetter(), []);
     const [targetLetter, setTargetLetter] = useState(initialLetter);
     const [detectedLetter, setDetectedLetter] = useState(null);
-    const [result, setResult] = useState(null); // "correct" | "wrong" | "error" | null
+    const [result, setResult] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [isChecking, setIsChecking] = useState(false);
     const [score, setScore] = useState(0);
@@ -53,6 +69,11 @@ export default function Quiz1Screen() {
 
     const [gameStarted, setGameStarted] = useState(false);
     const [didWin, setDidWin] = useState(false);
+
+    const targetScale = useRef(new Animated.Value(1)).current;
+    const targetRotate = useRef(new Animated.Value(0)).current;
+    const feedbackScale = useRef(new Animated.Value(1)).current;
+    const modalPop = useRef(new Animated.Value(0.9)).current;
 
     const clearAllTimers = useCallback(() => {
         if (detectIntervalRef.current) {
@@ -73,17 +94,332 @@ export default function Quiz1Screen() {
         }
     }, []);
 
-    const handleExit = useCallback(() => {
+    const stopSoundIfPlaying = useCallback(async (soundRef) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.stopAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop sound:", error);
+        }
+    }, []);
+
+    const unloadSoundRef = useCallback(async (soundRef) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.unloadAsync();
+                soundRef.current = null;
+            }
+        } catch (error) {
+            console.log("Failed to unload sound:", error);
+        }
+    }, []);
+
+    const loadSavedAudioSettings = useCallback(async () => {
+        try {
+            const [savedMusicVolume, savedSfxVolume] = await AsyncStorage.multiGet([
+                "musicVolume",
+                "sfxVolume",
+            ]);
+
+            const musicValue =
+                savedMusicVolume?.[1] !== null ? Number(savedMusicVolume[1]) : 0.12;
+            const sfxValue =
+                savedSfxVolume?.[1] !== null ? Number(savedSfxVolume[1]) : 0.45;
+
+            musicVolumeRef.current = Number.isFinite(musicValue) ? musicValue : 0.12;
+            sfxVolumeRef.current = Number.isFinite(sfxValue) ? sfxValue : 0.45;
+
+            if (bgSoundRef.current) {
+                await bgSoundRef.current.setVolumeAsync(
+                    musicVolumeRef.current * QUIZ_THEME_CAP
+                );
+            }
+
+            if (popSoundRef.current) {
+                await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (tickSoundRef.current) {
+                await tickSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (whistleSoundRef.current) {
+                await whistleSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (correctSoundRef.current) {
+                await correctSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+        } catch (error) {
+            console.log("Failed to load audio settings:", error);
+            musicVolumeRef.current = 0.12;
+            sfxVolumeRef.current = 0.45;
+        }
+    }, []);
+
+    const ensureSoundLoaded = useCallback(async (soundRef, source, volume) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.setVolumeAsync(volume);
+                return soundRef.current;
+            }
+
+            const { sound } = await Audio.Sound.createAsync(source, {
+                shouldPlay: false,
+                volume,
+            });
+
+            soundRef.current = sound;
+            return sound;
+        } catch (error) {
+            console.log("Failed to load sound:", error);
+            return null;
+        }
+    }, []);
+
+    const ensureSfxLoaded = useCallback(async () => {
+        await ensureSoundLoaded(
+            popSoundRef,
+            require("../../../../assets/images/audio/pop.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            tickSoundRef,
+            require("../../../../assets/images/audio/tick.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            whistleSoundRef,
+            require("../../../../assets/images/audio/whistle.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            correctSoundRef,
+            require("../../../../assets/images/audio/correct.mp3"),
+            sfxVolumeRef.current
+        );
+    }, [ensureSoundLoaded]);
+
+    const playPop = useCallback(async () => {
+        try {
+            await loadSavedAudioSettings();
+            const sound = await ensureSoundLoaded(
+                popSoundRef,
+                require("../../../../assets/images/audio/pop.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play pop sound:", error);
+        }
+    }, [ensureSoundLoaded, loadSavedAudioSettings]);
+
+    const playTick = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                tickSoundRef,
+                require("../../../../assets/images/audio/tick.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play tick sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const playWhistle = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                whistleSoundRef,
+                require("../../../../assets/images/audio/whistle.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play whistle sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const playCorrect = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                correctSoundRef,
+                require("../../../../assets/images/audio/correct.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play correct sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const stopBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current) {
+                const sound = bgSoundRef.current;
+                bgSoundRef.current = null;
+                await sound.stopAsync();
+                await sound.unloadAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop quiz theme:", error);
+        }
+    }, []);
+
+    const playBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current || isStartingBgRef.current) return;
+
+            isStartingBgRef.current = true;
+
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: false,
+                shouldDuckAndroid: true,
+            });
+
+            const { sound } = await Audio.Sound.createAsync(
+                require("../../../../assets/images/audio/quizTheme.mp3"),
+                {
+                    shouldPlay: true,
+                    isLooping: true,
+                    volume: musicVolumeRef.current * QUIZ_THEME_CAP,
+                }
+            );
+
+            if (bgSoundRef.current) {
+                await sound.unloadAsync();
+            } else {
+                bgSoundRef.current = sound;
+            }
+        } catch (error) {
+            console.log("Failed to play quiz theme:", error);
+        } finally {
+            isStartingBgRef.current = false;
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            let active = true;
+
+            const startScreenAudio = async () => {
+                await loadSavedAudioSettings();
+                await ensureSfxLoaded();
+
+                if (active) {
+                    await playBackgroundMusic();
+                }
+            };
+
+            startScreenAudio();
+
+            return () => {
+                active = false;
+                clearAllTimers();
+                stopBackgroundMusic();
+                stopSoundIfPlaying(tickSoundRef);
+                stopSoundIfPlaying(whistleSoundRef);
+                stopSoundIfPlaying(correctSoundRef);
+            };
+        }, [
+            clearAllTimers,
+            ensureSfxLoaded,
+            loadSavedAudioSettings,
+            playBackgroundMusic,
+            stopBackgroundMusic,
+            stopSoundIfPlaying,
+        ])
+    );
+
+    const animateTarget = useCallback(() => {
+        targetScale.setValue(1);
+        targetRotate.setValue(0);
+
+        Animated.parallel([
+            Animated.sequence([
+                Animated.timing(targetScale, {
+                    toValue: 1.12,
+                    duration: 180,
+                    easing: Easing.out(Easing.back(1.8)),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(targetScale, {
+                    toValue: 1,
+                    duration: 180,
+                    easing: Easing.out(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ]),
+            Animated.sequence([
+                Animated.timing(targetRotate, {
+                    toValue: 1,
+                    duration: 120,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(targetRotate, {
+                    toValue: -1,
+                    duration: 120,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(targetRotate, {
+                    toValue: 0,
+                    duration: 120,
+                    easing: Easing.linear,
+                    useNativeDriver: true,
+                }),
+            ]),
+        ]).start();
+    }, [targetRotate, targetScale]);
+
+    const animateFeedback = useCallback(() => {
+        feedbackScale.setValue(0.94);
+        Animated.spring(feedbackScale, {
+            toValue: 1,
+            friction: 5,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    }, [feedbackScale]);
+
+    const animateModal = useCallback(() => {
+        modalPop.setValue(0.88);
+        Animated.spring(modalPop, {
+            toValue: 1,
+            friction: 6,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    }, [modalPop]);
+
+    const handleExit = useCallback(async () => {
+        await playPop();
         clearAllTimers();
         router.replace(HOME_ROUTE);
-    }, [clearAllTimers]);
+    }, [clearAllTimers, playPop]);
 
     const resetRoundData = useCallback((current = null) => {
         setDetectedLetter(null);
         setResult(null);
         setErrorMessage("");
         setAnsweredCorrectly(false);
-        setTargetLetter(getRandomLetter(current));
+        const next = getRandomLetter(current);
+        setTargetLetter(next);
     }, []);
 
     const resetWholeGame = useCallback(() => {
@@ -105,8 +441,10 @@ export default function Quiz1Screen() {
     const markQuizAsFinished = useCallback(async () => {
         try {
             await AsyncStorage.setItem(QUIZ_FINISHED_KEY, "true");
+            return true;
         } catch (error) {
             console.log("Failed to save quiz completion:", error);
+            return false;
         }
     }, []);
 
@@ -118,11 +456,25 @@ export default function Quiz1Screen() {
 
             if (won) {
                 await markQuizAsFinished();
+
+                await AsyncStorage.setItem(
+                    "pendingQuizReward",
+                    JSON.stringify({
+                        show: true,
+                        title: "May bagong gantimpala!",
+                        items: [
+                            { name: "Sombrero", image: "hat" },
+                            { name: "Damit", image: "dress" },
+                            { name: "Kuwintas", image: "necklace" },
+                        ],
+                    })
+                );
             }
 
             setShowResultModal(true);
+            animateModal();
         },
-        [clearAllTimers, markQuizAsFinished]
+        [clearAllTimers, markQuizAsFinished, animateModal]
     );
 
     const startLiveRound = useCallback(() => {
@@ -147,7 +499,9 @@ export default function Quiz1Screen() {
         }, DETECTION_INTERVAL);
     }, [finishGame, resetRoundData]);
 
-    const startCountdown = useCallback(() => {
+    const startCountdown = useCallback(async () => {
+        await playPop();
+
         clearAllTimers();
         setShowIntroModal(false);
         setShowResultModal(false);
@@ -157,34 +511,53 @@ export default function Quiz1Screen() {
         setScore(0);
         setTimeLeft(ROUND_TIME);
         resetRoundData();
+        animateModal();
+
+        await playTick();
 
         countdownTimerRef.current = setInterval(() => {
             setCountdown((prev) => {
                 if (prev <= 1) {
                     clearInterval(countdownTimerRef.current);
                     countdownTimerRef.current = null;
+
+                    playWhistle();
                     startLiveRound();
                     return 0;
                 }
+
+                playTick();
                 return prev - 1;
             });
         }, 1000);
-    }, [clearAllTimers, resetRoundData, startLiveRound]);
+    }, [
+        animateModal,
+        clearAllTimers,
+        playPop,
+        playTick,
+        playWhistle,
+        resetRoundData,
+        startLiveRound,
+    ]);
 
-    const handleReview = useCallback(() => {
+    const handleReview = useCallback(async () => {
+        await playPop();
         clearAllTimers();
         router.push(REVIEW_ROUTE);
-    }, [clearAllTimers]);
+    }, [clearAllTimers, playPop]);
 
-    const handleWinGoHome = useCallback(() => {
+    const handleWinGoHome = useCallback(async () => {
+        await playPop();
         clearAllTimers();
         router.replace(HOME_ROUTE);
-    }, [clearAllTimers]);
+    }, [clearAllTimers, playPop]);
 
-    const handlePlayAgain = useCallback(() => {
+    const handlePlayAgain = useCallback(async () => {
+        await playPop();
         resetWholeGame();
         setShowIntroModal(true);
-    }, [resetWholeGame]);
+        animateModal();
+    }, [resetWholeGame, animateModal, playPop]);
 
     const handleDetect = useCallback(async () => {
         if (!gameStarted) return;
@@ -229,6 +602,7 @@ export default function Quiz1Screen() {
                 setResult("error");
                 setErrorMessage(data.error);
                 setDetectedLetter(null);
+                animateFeedback();
                 return;
             }
 
@@ -238,12 +612,15 @@ export default function Quiz1Screen() {
             if (!predicted) {
                 setResult("error");
                 setErrorMessage("Walang na-detect na sign.");
+                animateFeedback();
                 return;
             }
 
             if (predicted === targetLetter) {
                 setResult("correct");
                 setAnsweredCorrectly(true);
+                animateFeedback();
+                playCorrect();
 
                 setScore((prev) => {
                     const nextScore = prev + 1;
@@ -264,16 +641,20 @@ export default function Quiz1Screen() {
                     setResult(null);
                     setErrorMessage("");
                     setAnsweredCorrectly(false);
-                    setTargetLetter(getRandomLetter(targetLetter));
+                    const next = getRandomLetter(targetLetter);
+                    setTargetLetter(next);
+                    animateTarget();
                     nextRoundTimeoutRef.current = null;
                 }, 700);
             } else {
                 setResult("wrong");
+                animateFeedback();
             }
         } catch (error) {
             console.error("Detection error:", error);
             setResult("error");
             setErrorMessage("Hindi maka-connect sa detector server.");
+            animateFeedback();
         } finally {
             setIsChecking(false);
         }
@@ -284,6 +665,9 @@ export default function Quiz1Screen() {
         answeredCorrectly,
         targetLetter,
         finishGame,
+        animateFeedback,
+        animateTarget,
+        playCorrect,
     ]);
 
     const handleDetectRef = useRef(handleDetect);
@@ -293,12 +677,26 @@ export default function Quiz1Screen() {
     }, [handleDetect]);
 
     useEffect(() => {
+        animateTarget();
+    }, [targetLetter, animateTarget]);
+
+    useEffect(() => {
         return () => {
             clearAllTimers();
+            unloadSoundRef(popSoundRef);
+            unloadSoundRef(tickSoundRef);
+            unloadSoundRef(whistleSoundRef);
+            unloadSoundRef(correctSoundRef);
+            unloadSoundRef(bgSoundRef);
         };
-    }, [clearAllTimers]);
+    }, [clearAllTimers, unloadSoundRef]);
 
     const progressWidth = `${Math.min((score / WIN_SCORE) * 100, 100)}%`;
+
+    const rotateInterpolate = targetRotate.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: ["-8deg", "0deg", "8deg"],
+    });
 
     if (!permission) {
         return (
@@ -332,7 +730,10 @@ export default function Quiz1Screen() {
 
                     <TouchableOpacity
                         style={styles.primaryButton}
-                        onPress={requestPermission}
+                        onPress={async () => {
+                            await playPop();
+                            requestPermission();
+                        }}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.primaryButtonText}>Allow Camera</Text>
@@ -357,10 +758,17 @@ export default function Quiz1Screen() {
             </View>
 
             <View style={styles.topRow}>
-                <View style={styles.targetCard}>
+                <Animated.View
+                    style={[
+                        styles.targetCard,
+                        {
+                            transform: [{ scale: targetScale }, { rotate: rotateInterpolate }],
+                        },
+                    ]}
+                >
                     <Text style={styles.targetLabel}>Ipakita ang sign na ito</Text>
                     <Text style={styles.targetLetter}>{targetLetter}</Text>
-                </View>
+                </Animated.View>
 
                 <View style={styles.scoreCard}>
                     <Text style={styles.scoreLabel}>Score</Text>
@@ -404,35 +812,47 @@ export default function Quiz1Screen() {
                 </View>
 
                 <View style={styles.cameraHintBadge}>
-                    <Text style={styles.cameraHintText}>Ilagay ang kamay sa gitna</Text>
+                    <Text style={styles.cameraHintText}>🙌 Ilagay ang kamay sa gitna</Text>
                 </View>
             </View>
 
-            <View style={styles.feedbackCard}>
+            <Animated.View
+                style={[
+                    styles.feedbackCard,
+                    {
+                        transform: [{ scale: feedbackScale }],
+                    },
+                ]}
+            >
                 {!gameStarted ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>🎯</Text>
                         <Text style={styles.feedbackText}>
                             Pindutin ang OK para simulan ang challenge.
                         </Text>
                     </>
                 ) : isChecking ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>👀</Text>
                         <Text style={styles.feedbackText}>Tinitingnan ang sign mo...</Text>
                     </>
                 ) : result === "correct" ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>🎉</Text>
                         <Text style={styles.correctText}>
                             Tama! Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "wrong" ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>🤔</Text>
                         <Text style={styles.wrongText}>
-                            Mali. Detected: {detectedLetter}
+                            Mali — Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "error" ? (
                     <>
+                        <Text style={styles.feedbackEmoji}>⚠️</Text>
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     </>
                 ) : (
@@ -443,14 +863,22 @@ export default function Quiz1Screen() {
                         </Text>
                     </>
                 )}
-            </View>
+            </Animated.View>
 
             <Modal visible={showIntroModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
-                    <View style={styles.modalCard}>
+                    <Animated.View
+                        style={[
+                            styles.modalCard,
+                            {
+                                transform: [{ scale: modalPop }],
+                            },
+                        ]}
+                    >
+                        <Text style={styles.modalEmoji}>⭐</Text>
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
-                            Ipakita ang tamang FSL sign para sa mga titik A hanggang G.
+                            Ipakita ang tamang FSL sign para sa mga titik A hanggang F.
                         </Text>
                         <Text style={styles.modalSubText}>
                             Mayroon kang {ROUND_TIME} segundo para makaabot sa {WIN_SCORE} na
@@ -464,22 +892,37 @@ export default function Quiz1Screen() {
                         >
                             <Text style={styles.modalPrimaryButtonText}>OK, Simulan!</Text>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
 
             <Modal visible={showCountdownModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
-                    <View style={styles.countdownCard}>
+                    <Animated.View
+                        style={[
+                            styles.countdownCard,
+                            {
+                                transform: [{ scale: modalPop }],
+                            },
+                        ]}
+                    >
+                        <Text style={styles.countdownEmoji}>⏳</Text>
                         <Text style={styles.countdownLabel}>Magsisimula sa</Text>
                         <Text style={styles.countdownNumber}>{countdown}</Text>
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
 
             <Modal visible={showResultModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
-                    <View style={styles.modalCard}>
+                    <Animated.View
+                        style={[
+                            styles.modalCard,
+                            {
+                                transform: [{ scale: modalPop }],
+                            },
+                        ]}
+                    >
                         {didWin ? (
                             <>
                                 <Text style={styles.modalEmoji}>🏆</Text>
@@ -537,7 +980,7 @@ export default function Quiz1Screen() {
                                 </TouchableOpacity>
                             </>
                         )}
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
         </SafeAreaView>
@@ -769,7 +1212,7 @@ const styles = StyleSheet.create({
     },
 
     feedbackCard: {
-        minHeight: 50,
+        minHeight: 90,
         backgroundColor: "#FFFFFF",
         borderRadius: 24,
         borderWidth: 4,

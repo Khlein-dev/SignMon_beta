@@ -10,10 +10,11 @@ import {
     Animated,
     Easing,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Audio } from "expo-av";
 
 const LETTERS = ["P", "Q", "R", "S"];
 const API_URL = "http://192.168.1.2:8000/detect-sign/quiz3";
@@ -28,12 +29,24 @@ const LESSON_PASSED_KEY = "lesson3Passed";
 const REVIEW_ROUTE = "/lessons/lesson3";
 const HOME_ROUTE = "/Home";
 
+const QUIZ_THEME_CAP = 0.16;
+
 export default function Quiz3Screen() {
     const cameraRef = useRef(null);
     const detectIntervalRef = useRef(null);
     const roundTimerRef = useRef(null);
     const countdownTimerRef = useRef(null);
     const nextRoundTimeoutRef = useRef(null);
+
+    const bgSoundRef = useRef(null);
+    const popSoundRef = useRef(null);
+    const tickSoundRef = useRef(null);
+    const whistleSoundRef = useRef(null);
+    const correctSoundRef = useRef(null);
+    const isStartingBgRef = useRef(false);
+
+    const musicVolumeRef = useRef(0.12);
+    const sfxVolumeRef = useRef(0.45);
 
     const [permission, requestPermission] = useCameraPermissions();
     const [cameraReady, setCameraReady] = useState(false);
@@ -80,6 +93,257 @@ export default function Quiz3Screen() {
             nextRoundTimeoutRef.current = null;
         }
     }, []);
+
+    const stopSoundIfPlaying = useCallback(async (soundRef) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.stopAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop sound:", error);
+        }
+    }, []);
+
+    const unloadSoundRef = useCallback(async (soundRef) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.unloadAsync();
+                soundRef.current = null;
+            }
+        } catch (error) {
+            console.log("Failed to unload sound:", error);
+        }
+    }, []);
+
+    const loadSavedAudioSettings = useCallback(async () => {
+        try {
+            const [savedMusicVolume, savedSfxVolume] = await AsyncStorage.multiGet([
+                "musicVolume",
+                "sfxVolume",
+            ]);
+
+            const musicValue =
+                savedMusicVolume?.[1] !== null ? Number(savedMusicVolume[1]) : 0.12;
+            const sfxValue =
+                savedSfxVolume?.[1] !== null ? Number(savedSfxVolume[1]) : 0.45;
+
+            musicVolumeRef.current = Number.isFinite(musicValue) ? musicValue : 0.12;
+            sfxVolumeRef.current = Number.isFinite(sfxValue) ? sfxValue : 0.45;
+
+            if (bgSoundRef.current) {
+                await bgSoundRef.current.setVolumeAsync(
+                    musicVolumeRef.current * QUIZ_THEME_CAP
+                );
+            }
+
+            if (popSoundRef.current) {
+                await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (tickSoundRef.current) {
+                await tickSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (whistleSoundRef.current) {
+                await whistleSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (correctSoundRef.current) {
+                await correctSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+        } catch (error) {
+            console.log("Failed to load audio settings:", error);
+            musicVolumeRef.current = 0.12;
+            sfxVolumeRef.current = 0.45;
+        }
+    }, []);
+
+    const ensureSoundLoaded = useCallback(async (soundRef, source, volume) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.setVolumeAsync(volume);
+                return soundRef.current;
+            }
+
+            const { sound } = await Audio.Sound.createAsync(source, {
+                shouldPlay: false,
+                volume,
+            });
+
+            soundRef.current = sound;
+            return sound;
+        } catch (error) {
+            console.log("Failed to load sound:", error);
+            return null;
+        }
+    }, []);
+
+    const ensureSfxLoaded = useCallback(async () => {
+        await ensureSoundLoaded(
+            popSoundRef,
+            require("../../../../assets/images/audio/pop.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            tickSoundRef,
+            require("../../../../assets/images/audio/tick.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            whistleSoundRef,
+            require("../../../../assets/images/audio/whistle.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            correctSoundRef,
+            require("../../../../assets/images/audio/correct.mp3"),
+            sfxVolumeRef.current
+        );
+    }, [ensureSoundLoaded]);
+
+    const playPop = useCallback(async () => {
+        try {
+            await loadSavedAudioSettings();
+            const sound = await ensureSoundLoaded(
+                popSoundRef,
+                require("../../../../assets/images/audio/pop.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play pop sound:", error);
+        }
+    }, [ensureSoundLoaded, loadSavedAudioSettings]);
+
+    const playTick = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                tickSoundRef,
+                require("../../../../assets/images/audio/tick.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play tick sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const playWhistle = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                whistleSoundRef,
+                require("../../../../assets/images/audio/whistle.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play whistle sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const playCorrect = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                correctSoundRef,
+                require("../../../../assets/images/audio/correct.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play correct sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const stopBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current) {
+                const sound = bgSoundRef.current;
+                bgSoundRef.current = null;
+                await sound.stopAsync();
+                await sound.unloadAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop quiz theme:", error);
+        }
+    }, []);
+
+    const playBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current || isStartingBgRef.current) return;
+
+            isStartingBgRef.current = true;
+
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: false,
+                shouldDuckAndroid: true,
+            });
+
+            const { sound } = await Audio.Sound.createAsync(
+                require("../../../../assets/images/audio/quizTheme.mp3"),
+                {
+                    shouldPlay: true,
+                    isLooping: true,
+                    volume: musicVolumeRef.current * QUIZ_THEME_CAP,
+                }
+            );
+
+            if (bgSoundRef.current) {
+                await sound.unloadAsync();
+            } else {
+                bgSoundRef.current = sound;
+            }
+        } catch (error) {
+            console.log("Failed to play quiz theme:", error);
+        } finally {
+            isStartingBgRef.current = false;
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            let active = true;
+
+            const startScreenAudio = async () => {
+                await loadSavedAudioSettings();
+                await ensureSfxLoaded();
+
+                if (active) {
+                    await playBackgroundMusic();
+                }
+            };
+
+            startScreenAudio();
+
+            return () => {
+                active = false;
+                clearAllTimers();
+                stopBackgroundMusic();
+                stopSoundIfPlaying(tickSoundRef);
+                stopSoundIfPlaying(whistleSoundRef);
+                stopSoundIfPlaying(correctSoundRef);
+            };
+        }, [
+            clearAllTimers,
+            ensureSfxLoaded,
+            loadSavedAudioSettings,
+            playBackgroundMusic,
+            stopBackgroundMusic,
+            stopSoundIfPlaying,
+        ])
+    );
 
     const animateTarget = useCallback(() => {
         targetScale.setValue(1);
@@ -143,10 +407,11 @@ export default function Quiz3Screen() {
         }).start();
     }, [modalPop]);
 
-    const handleExit = useCallback(() => {
+    const handleExit = useCallback(async () => {
+        await playPop();
         clearAllTimers();
         router.replace(HOME_ROUTE);
-    }, [clearAllTimers]);
+    }, [clearAllTimers, playPop]);
 
     const resetRoundData = useCallback((current = null) => {
         setDetectedLetter(null);
@@ -193,16 +458,15 @@ export default function Quiz3Screen() {
             if (won) {
                 await markQuizAsFinished();
 
-                // ✅ ADD THIS HERE
                 await AsyncStorage.setItem(
                     "pendingQuizReward",
                     JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
                         items: [
-                            { name: "Sombrero", image: "hat" },
-                            { name: "Damit", image: "dress" },
-                            { name: "Kuwintas", image: "necklace" },
+                            { name: "Headphones", image: "hat" },
+                            { name: "Shirt", image: "dress" },
+                            { name: "Medal", image: "necklace" },
                         ],
                     })
                 );
@@ -236,7 +500,9 @@ export default function Quiz3Screen() {
         }, DETECTION_INTERVAL);
     }, [finishGame, resetRoundData]);
 
-    const startCountdown = useCallback(() => {
+    const startCountdown = useCallback(async () => {
+        await playPop();
+
         clearAllTimers();
         setShowIntroModal(false);
         setShowResultModal(false);
@@ -246,34 +512,53 @@ export default function Quiz3Screen() {
         setScore(0);
         setTimeLeft(ROUND_TIME);
         resetRoundData();
+        animateModal();
+
+        await playTick();
 
         countdownTimerRef.current = setInterval(() => {
             setCountdown((prev) => {
                 if (prev <= 1) {
                     clearInterval(countdownTimerRef.current);
                     countdownTimerRef.current = null;
+
+                    playWhistle();
                     startLiveRound();
                     return 0;
                 }
+
+                playTick();
                 return prev - 1;
             });
         }, 1000);
-    }, [clearAllTimers, resetRoundData, startLiveRound]);
+    }, [
+        animateModal,
+        clearAllTimers,
+        playPop,
+        playTick,
+        playWhistle,
+        resetRoundData,
+        startLiveRound,
+    ]);
 
-    const handleReview = useCallback(() => {
+    const handleReview = useCallback(async () => {
+        await playPop();
         clearAllTimers();
         router.push(REVIEW_ROUTE);
-    }, [clearAllTimers]);
+    }, [clearAllTimers, playPop]);
 
-    const handleWinGoHome = useCallback(() => {
+    const handleWinGoHome = useCallback(async () => {
+        await playPop();
         clearAllTimers();
         router.replace(HOME_ROUTE);
-    }, [clearAllTimers]);
+    }, [clearAllTimers, playPop]);
 
-    const handlePlayAgain = useCallback(() => {
+    const handlePlayAgain = useCallback(async () => {
+        await playPop();
         resetWholeGame();
         setShowIntroModal(true);
-    }, [resetWholeGame]);
+        animateModal();
+    }, [resetWholeGame, animateModal, playPop]);
 
     const handleDetect = useCallback(async () => {
         if (!gameStarted) return;
@@ -336,6 +621,7 @@ export default function Quiz3Screen() {
                 setResult("correct");
                 setAnsweredCorrectly(true);
                 animateFeedback();
+                playCorrect();
 
                 setScore((prev) => {
                     const nextScore = prev + 1;
@@ -382,6 +668,7 @@ export default function Quiz3Screen() {
         finishGame,
         animateFeedback,
         animateTarget,
+        playCorrect,
     ]);
 
     const handleDetectRef = useRef(handleDetect);
@@ -397,8 +684,13 @@ export default function Quiz3Screen() {
     useEffect(() => {
         return () => {
             clearAllTimers();
+            unloadSoundRef(popSoundRef);
+            unloadSoundRef(tickSoundRef);
+            unloadSoundRef(whistleSoundRef);
+            unloadSoundRef(correctSoundRef);
+            unloadSoundRef(bgSoundRef);
         };
-    }, [clearAllTimers]);
+    }, [clearAllTimers, unloadSoundRef]);
 
     const progressWidth = `${Math.min((score / WIN_SCORE) * 100, 100)}%`;
 
@@ -439,7 +731,10 @@ export default function Quiz3Screen() {
 
                     <TouchableOpacity
                         style={styles.primaryButton}
-                        onPress={requestPermission}
+                        onPress={async () => {
+                            await playPop();
+                            requestPermission();
+                        }}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.primaryButtonText}>Allow Camera</Text>

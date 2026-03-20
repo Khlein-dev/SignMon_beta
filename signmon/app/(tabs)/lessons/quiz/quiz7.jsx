@@ -9,7 +9,7 @@ import {
     Animated,
     Easing,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,6 +23,8 @@ const QUIZ7_FINISHED_KEY = "quiz7Finished";
 
 const REVIEW_ROUTE = "/lessons/lesson7";
 const HOME_ROUTE = "/Home";
+
+const QUIZ_THEME_CAP = 0.16;
 
 const FAMILY_BANK = [
     {
@@ -62,9 +64,16 @@ export default function Quiz7() {
     const [showResultModal, setShowResultModal] = useState(false);
     const [didWin, setDidWin] = useState(false);
 
-    const soundRef = useRef(null);
+    const bgSoundRef = useRef(null);
+    const popSoundRef = useRef(null);
+    const correctSoundRef = useRef(null);
+    const isStartingBgRef = useRef(false);
+
+    const musicVolumeRef = useRef(0.12);
+    const sfxVolumeRef = useRef(0.45);
 
     const cardScale = useRef(new Animated.Value(1)).current;
+    const feedbackScale = useRef(new Animated.Value(1)).current;
     const modalScale = useRef(new Animated.Value(0.9)).current;
     const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -75,37 +84,6 @@ export default function Quiz7() {
         playerInstance.muted = true;
         playerInstance.play();
     });
-
-    useEffect(() => {
-        let isActive = true;
-
-        const loadSound = async () => {
-            try {
-                const { sound } = await Audio.Sound.createAsync(
-                    require("../../../../assets/images/audio/pop.mp3")
-                );
-
-                if (isActive) {
-                    soundRef.current = sound;
-                } else {
-                    await sound.unloadAsync();
-                }
-            } catch (error) {
-                console.log("Failed to load pop sound:", error);
-            }
-        };
-
-        loadSound();
-
-        return () => {
-            isActive = false;
-
-            if (soundRef.current) {
-                soundRef.current.unloadAsync();
-                soundRef.current = null;
-            }
-        };
-    }, []);
 
     useEffect(() => {
         if (currentQuestion?.source) {
@@ -125,14 +103,205 @@ export default function Quiz7() {
         }).start();
     }, [currentIndex, progressAnim]);
 
+    const stopSoundIfPlaying = useCallback(async (soundRef) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.stopAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop sound:", error);
+        }
+    }, []);
+
+    const unloadSoundRef = useCallback(async (soundRef) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.unloadAsync();
+                soundRef.current = null;
+            }
+        } catch (error) {
+            console.log("Failed to unload sound:", error);
+        }
+    }, []);
+
+    const loadSavedAudioSettings = useCallback(async () => {
+        try {
+            const [savedMusicVolume, savedSfxVolume] = await AsyncStorage.multiGet([
+                "musicVolume",
+                "sfxVolume",
+            ]);
+
+            const musicValue =
+                savedMusicVolume?.[1] !== null ? Number(savedMusicVolume[1]) : 0.12;
+            const sfxValue =
+                savedSfxVolume?.[1] !== null ? Number(savedSfxVolume[1]) : 0.45;
+
+            musicVolumeRef.current = Number.isFinite(musicValue) ? musicValue : 0.12;
+            sfxVolumeRef.current = Number.isFinite(sfxValue) ? sfxValue : 0.45;
+
+            if (bgSoundRef.current) {
+                await bgSoundRef.current.setVolumeAsync(
+                    musicVolumeRef.current * QUIZ_THEME_CAP
+                );
+            }
+
+            if (popSoundRef.current) {
+                await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (correctSoundRef.current) {
+                await correctSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+        } catch (error) {
+            console.log("Failed to load audio settings:", error);
+            musicVolumeRef.current = 0.12;
+            sfxVolumeRef.current = 0.45;
+        }
+    }, []);
+
+    const ensureSoundLoaded = useCallback(async (soundRef, source, volume) => {
+        try {
+            if (soundRef.current) {
+                await soundRef.current.setVolumeAsync(volume);
+                return soundRef.current;
+            }
+
+            const { sound } = await Audio.Sound.createAsync(source, {
+                shouldPlay: false,
+                volume,
+            });
+
+            soundRef.current = sound;
+            return sound;
+        } catch (error) {
+            console.log("Failed to load sound:", error);
+            return null;
+        }
+    }, []);
+
+    const ensureSfxLoaded = useCallback(async () => {
+        await ensureSoundLoaded(
+            popSoundRef,
+            require("../../../../assets/images/audio/pop.mp3"),
+            sfxVolumeRef.current
+        );
+        await ensureSoundLoaded(
+            correctSoundRef,
+            require("../../../../assets/images/audio/correct.mp3"),
+            sfxVolumeRef.current
+        );
+    }, [ensureSoundLoaded]);
+
     const playPop = useCallback(async () => {
         try {
-            if (!soundRef.current) return;
-            await soundRef.current.replayAsync();
+            await loadSavedAudioSettings();
+
+            const sound = await ensureSoundLoaded(
+                popSoundRef,
+                require("../../../../assets/images/audio/pop.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
         } catch (error) {
             console.log("Failed to play pop sound:", error);
         }
+    }, [ensureSoundLoaded, loadSavedAudioSettings]);
+
+    const playCorrect = useCallback(async () => {
+        try {
+            const sound = await ensureSoundLoaded(
+                correctSoundRef,
+                require("../../../../assets/images/audio/correct.mp3"),
+                sfxVolumeRef.current
+            );
+
+            if (!sound) return;
+
+            await sound.setVolumeAsync(sfxVolumeRef.current);
+            await sound.replayAsync();
+        } catch (error) {
+            console.log("Failed to play correct sound:", error);
+        }
+    }, [ensureSoundLoaded]);
+
+    const stopBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current) {
+                const sound = bgSoundRef.current;
+                bgSoundRef.current = null;
+                await sound.stopAsync();
+                await sound.unloadAsync();
+            }
+        } catch (error) {
+            console.log("Failed to stop quiz theme:", error);
+        }
     }, []);
+
+    const playBackgroundMusic = useCallback(async () => {
+        try {
+            if (bgSoundRef.current || isStartingBgRef.current) return;
+
+            isStartingBgRef.current = true;
+
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: false,
+                shouldDuckAndroid: true,
+            });
+
+            const { sound } = await Audio.Sound.createAsync(
+                require("../../../../assets/images/audio/quizTheme.mp3"),
+                {
+                    shouldPlay: true,
+                    isLooping: true,
+                    volume: musicVolumeRef.current * QUIZ_THEME_CAP,
+                }
+            );
+
+            if (bgSoundRef.current) {
+                await sound.unloadAsync();
+            } else {
+                bgSoundRef.current = sound;
+            }
+        } catch (error) {
+            console.log("Failed to play quiz theme:", error);
+        } finally {
+            isStartingBgRef.current = false;
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            let active = true;
+
+            const startScreenAudio = async () => {
+                await loadSavedAudioSettings();
+                await ensureSfxLoaded();
+
+                if (active) {
+                    await playBackgroundMusic();
+                }
+            };
+
+            startScreenAudio();
+
+            return () => {
+                active = false;
+                stopBackgroundMusic();
+                stopSoundIfPlaying(correctSoundRef);
+            };
+        }, [
+            ensureSfxLoaded,
+            loadSavedAudioSettings,
+            playBackgroundMusic,
+            stopBackgroundMusic,
+            stopSoundIfPlaying,
+        ])
+    );
 
     const animateQuestionCard = useCallback(() => {
         cardScale.setValue(0.94);
@@ -143,6 +312,16 @@ export default function Quiz7() {
             useNativeDriver: true,
         }).start();
     }, [cardScale]);
+
+    const animateFeedback = useCallback(() => {
+        feedbackScale.setValue(0.92);
+        Animated.spring(feedbackScale, {
+            toValue: 1,
+            friction: 5,
+            tension: 120,
+            useNativeDriver: true,
+        }).start();
+    }, [feedbackScale]);
 
     const animateModal = useCallback(() => {
         modalScale.setValue(0.88);
@@ -158,6 +337,14 @@ export default function Quiz7() {
         animateQuestionCard();
     }, [currentIndex, animateQuestionCard]);
 
+    useEffect(() => {
+        return () => {
+            unloadSoundRef(popSoundRef);
+            unloadSoundRef(correctSoundRef);
+            unloadSoundRef(bgSoundRef);
+        };
+    }, [unloadSoundRef]);
+
     const handleExit = useCallback(async () => {
         await playPop();
         router.replace(HOME_ROUTE);
@@ -169,8 +356,10 @@ export default function Quiz7() {
                 [LESSON7_PASSED_KEY, "true"],
                 [QUIZ7_FINISHED_KEY, "true"],
             ]);
+            return true;
         } catch (error) {
             console.log("Failed to save lesson 7 pass state:", error);
+            return false;
         }
     }, []);
 
@@ -180,6 +369,19 @@ export default function Quiz7() {
 
             if (won) {
                 await markLessonPassed();
+
+                await AsyncStorage.setItem(
+                    "pendingQuizReward",
+                    JSON.stringify({
+                        show: true,
+                        title: "May bagong gantimpala!",
+                        items: [
+                            { name: "Sombrero", image: "hat" },
+                            { name: "Damit", image: "dress" },
+                            { name: "Kuwintas", image: "necklace" },
+                        ],
+                    })
+                );
             }
 
             setScore(finalScore);
@@ -197,12 +399,14 @@ export default function Quiz7() {
 
             setSelectedChoice(choice);
             setLocked(true);
+            animateFeedback();
 
             const isCorrect = choice === currentQuestion.answer;
             const nextScore = isCorrect ? score + 1 : score;
 
             if (isCorrect) {
                 setScore(nextScore);
+                playCorrect();
             }
 
             setTimeout(async () => {
@@ -216,7 +420,16 @@ export default function Quiz7() {
                 setLocked(false);
             }, 1000);
         },
-        [locked, currentQuestion, currentIndex, score, finishQuiz, playPop]
+        [
+            locked,
+            currentQuestion,
+            currentIndex,
+            score,
+            finishQuiz,
+            playPop,
+            animateFeedback,
+            playCorrect,
+        ]
     );
 
     const handlePlayAgain = useCallback(async () => {
@@ -230,7 +443,8 @@ export default function Quiz7() {
         setShowResultModal(false);
         setShowIntroModal(true);
         progressAnim.setValue(0);
-    }, [playPop, progressAnim]);
+        animateModal();
+    }, [playPop, progressAnim, animateModal]);
 
     const handleReview = useCallback(async () => {
         await playPop();
@@ -345,7 +559,14 @@ export default function Quiz7() {
                 </Text>
             </Animated.View>
 
-            <View style={styles.choicesWrap}>
+            <Animated.View
+                style={[
+                    styles.choicesWrap,
+                    {
+                        transform: [{ scale: feedbackScale }],
+                    },
+                ]}
+            >
                 {currentQuestion.choices.map((choice) => (
                     <TouchableOpacity
                         key={choice}
@@ -357,7 +578,7 @@ export default function Quiz7() {
                         <Text style={getChoiceTextStyle(choice)}>{choice}</Text>
                     </TouchableOpacity>
                 ))}
-            </View>
+            </Animated.View>
 
             <Modal visible={showIntroModal} transparent animationType="fade">
                 <View style={styles.modalBackdrop}>
