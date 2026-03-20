@@ -9,6 +9,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { Audio } from "expo-av";
+import Octicons from "@expo/vector-icons/Octicons";
 
 const QUIZ_KEYS = [
     "quiz1Finished",
@@ -21,29 +22,51 @@ const QUIZ_KEYS = [
     "quiz8Finished",
 ];
 
+const BASE_PROGRESS = 50;
+const MAX_LEVEL = 9;
+
 const LEVEL_STYLES = {
-    1: { bg: "#8B5CF6", border: "#2B1140", bar: "#A78BFA" },
-    2: { bg: "#22C55E", border: "#14532D", bar: "#86EFAC" },
-    3: { bg: "#3B82F6", border: "#1E3A8A", bar: "#93C5FD" },
-    4: { bg: "#F97316", border: "#9A3412", bar: "#FDBA74" },
-    5: { bg: "#EC4899", border: "#9D174D", bar: "#F9A8D4" },
-    6: { bg: "#EAB308", border: "#854D0E", bar: "#FDE68A" },
-    7: { bg: "#14B8A6", border: "#115E59", bar: "#99F6E4" },
-    8: { bg: "#EF4444", border: "#7F1D1D", bar: "#FCA5A5" },
-    9: { bg: "#06B6D4", border: "#164E63", bar: "#A5F3FC" },
+    1: { bg: "#8B5CF6", border: "#2B1140", bar: "#A78BFA", stripeA: "#C4B5FD", stripeB: "#DDD6FE" },
+    2: { bg: "#22C55E", border: "#14532D", bar: "#86EFAC", stripeA: "#BBF7D0", stripeB: "#DCFCE7" },
+    3: { bg: "#3B82F6", border: "#1E3A8A", bar: "#93C5FD", stripeA: "#BFDBFE", stripeB: "#DBEAFE" },
+    4: { bg: "#F97316", border: "#9A3412", bar: "#FDBA74", stripeA: "#FED7AA", stripeB: "#FFEDD5" },
+    5: { bg: "#EC4899", border: "#9D174D", bar: "#F9A8D4", stripeA: "#FBCFE8", stripeB: "#FCE7F3" },
+    6: { bg: "#EAB308", border: "#854D0E", bar: "#FDE68A", stripeA: "#FEF08A", stripeB: "#FEF9C3" },
+    7: { bg: "#14B8A6", border: "#115E59", bar: "#99F6E4", stripeA: "#CCFBF1", stripeB: "#F0FDFA" },
+    8: { bg: "#EF4444", border: "#7F1D1D", bar: "#FCA5A5", stripeA: "#FECACA", stripeB: "#FEE2E2" },
+    9: { bg: "#06B6D4", border: "#164E63", bar: "#A5F3FC", stripeA: "#CFFAFE", stripeB: "#ECFEFF" },
 };
 
 export default function Stats() {
     const [displayLevel, setDisplayLevel] = useState(1);
-    const [displayProgress, setDisplayProgress] = useState(0);
+    const [displayProgress, setDisplayProgress] = useState(BASE_PROGRESS);
+    const [isAnimatingBar, setIsAnimatingBar] = useState(false);
 
     const previousCompletedRef = useRef(0);
+    const isSyncingRef = useRef(false);
 
-    const progressAnim = useRef(new Animated.Value(0)).current;
+    const progressAnim = useRef(new Animated.Value(BASE_PROGRESS)).current;
     const levelScale = useRef(new Animated.Value(1)).current;
     const sparkleAnim = useRef(new Animated.Value(0)).current;
+    const stripeTranslateAnim = useRef(new Animated.Value(0)).current;
 
     const levelUpSoundRef = useRef(null);
+    const progressListenerRef = useRef(null);
+    const stripeLoopRef = useRef(null);
+
+    useEffect(() => {
+        progressListenerRef.current = progressAnim.addListener(({ value }) => {
+            setDisplayProgress(Math.round(value));
+        });
+
+        return () => {
+            if (progressListenerRef.current) {
+                progressAnim.removeListener(progressListenerRef.current);
+            } else {
+                progressAnim.removeAllListeners();
+            }
+        };
+    }, [progressAnim]);
 
     useEffect(() => {
         let isActive = true;
@@ -68,6 +91,12 @@ export default function Stats() {
 
         return () => {
             isActive = false;
+
+            if (stripeLoopRef.current) {
+                stripeLoopRef.current.stop();
+                stripeLoopRef.current = null;
+            }
+
             if (levelUpSoundRef.current) {
                 levelUpSoundRef.current.unloadAsync();
                 levelUpSoundRef.current = null;
@@ -91,42 +120,69 @@ export default function Stats() {
         }, 0);
     };
 
-    // 0 passed = level 1
-    // 1 passed = level 2
-    // 2 passed = level 3
     const getLevelFromCompleted = (completedCount) => {
-        return Math.min(completedCount + 1, 9);
+        return Math.min(completedCount + 1, MAX_LEVEL);
+    };
+
+    const stopStripeAnimation = () => {
+        if (stripeLoopRef.current) {
+            stripeLoopRef.current.stop();
+            stripeLoopRef.current = null;
+        }
+        stripeTranslateAnim.setValue(0);
+    };
+
+    const startStripeAnimation = () => {
+        stopStripeAnimation();
+
+        stripeTranslateAnim.setValue(0);
+
+        stripeLoopRef.current = Animated.loop(
+            Animated.timing(stripeTranslateAnim, {
+                toValue: 1,
+                duration: 700,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        );
+
+        stripeLoopRef.current.start();
     };
 
     const resetStats = () => {
         previousCompletedRef.current = 0;
         setDisplayLevel(1);
-        setDisplayProgress(0);
-        progressAnim.setValue(0);
+        setDisplayProgress(BASE_PROGRESS);
+        setIsAnimatingBar(false);
+        stopStripeAnimation();
+        progressAnim.setValue(BASE_PROGRESS);
     };
 
     const animateOneLevelUp = async (nextLevel) => {
         await playLevelUp();
 
+        setIsAnimatingBar(true);
+        startStripeAnimation();
+
         return new Promise((resolve) => {
             Animated.sequence([
-                Animated.timing(progressAnim, {
-                    toValue: 100,
-                    duration: 550,
-                    easing: Easing.out(Easing.cubic),
-                    useNativeDriver: false,
-                }),
                 Animated.parallel([
+                    Animated.timing(progressAnim, {
+                        toValue: 100,
+                        duration: 900,
+                        easing: Easing.out(Easing.cubic),
+                        useNativeDriver: false,
+                    }),
                     Animated.sequence([
                         Animated.timing(levelScale, {
-                            toValue: 1.2,
+                            toValue: 1.18,
                             duration: 180,
                             easing: Easing.out(Easing.back(2)),
                             useNativeDriver: true,
                         }),
                         Animated.timing(levelScale, {
                             toValue: 1,
-                            duration: 220,
+                            duration: 240,
                             easing: Easing.out(Easing.ease),
                             useNativeDriver: true,
                         }),
@@ -134,28 +190,35 @@ export default function Stats() {
                     Animated.sequence([
                         Animated.timing(sparkleAnim, {
                             toValue: 1,
-                            duration: 180,
+                            duration: 200,
                             easing: Easing.out(Easing.ease),
                             useNativeDriver: true,
                         }),
                         Animated.timing(sparkleAnim, {
                             toValue: 0,
-                            duration: 320,
+                            duration: 350,
                             easing: Easing.in(Easing.ease),
                             useNativeDriver: true,
                         }),
                     ]),
                 ]),
+                Animated.delay(150),
             ]).start(() => {
+                stopStripeAnimation();
+                setIsAnimatingBar(false);
                 setDisplayLevel(nextLevel);
-                setDisplayProgress(0);
-                progressAnim.setValue(0);
+                setDisplayProgress(BASE_PROGRESS);
+                progressAnim.setValue(BASE_PROGRESS);
                 resolve();
             });
         });
     };
 
     const syncStats = useCallback(async () => {
+        if (isSyncingRef.current) return;
+
+        isSyncingRef.current = true;
+
         try {
             const completedCount = await getCompletedCount();
 
@@ -166,21 +229,20 @@ export default function Stats() {
 
             const currentCompleted = previousCompletedRef.current;
 
-            // if progress was cleared or lowered
             if (completedCount < currentCompleted) {
                 previousCompletedRef.current = completedCount;
                 setDisplayLevel(getLevelFromCompleted(completedCount));
-                setDisplayProgress(0);
-                progressAnim.setValue(0);
+                setDisplayProgress(BASE_PROGRESS);
+                setIsAnimatingBar(false);
+                stopStripeAnimation();
+                progressAnim.setValue(BASE_PROGRESS);
                 return;
             }
 
-            // no change
             if (completedCount === currentCompleted) {
                 return;
             }
 
-            // animate each newly completed quiz
             for (let step = currentCompleted + 1; step <= completedCount; step += 1) {
                 const nextLevel = getLevelFromCompleted(step);
                 await animateOneLevelUp(nextLevel);
@@ -188,6 +250,8 @@ export default function Stats() {
             }
         } catch (error) {
             console.log("Failed to load stats:", error);
+        } finally {
+            isSyncingRef.current = false;
         }
     }, [progressAnim]);
 
@@ -220,13 +284,20 @@ export default function Stats() {
         outputRange: [0, 1],
     });
 
+    const stripeTranslate = stripeTranslateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-40, 40],
+    });
+
     return (
         <View style={styles.container}>
-            <View style={styles.bubbleBlue} />
-            <View style={styles.bubbleYellow} />
-            <View style={styles.bubbleGreen} />
-
             <View style={styles.card}>
+                <View style={[styles.cardBubble, styles.cardBubblePurple]} />
+                <View style={[styles.cardBubble, styles.cardBubbleBlue]} />
+                <View style={[styles.cardBubble, styles.cardBubbleYellow]} />
+                <View style={[styles.cardBubble, styles.cardBubbleGreen]} />
+                <View style={[styles.cardBubble, styles.cardBubblePink]} />
+
                 <View style={styles.leftSide}>
                     <Animated.View
                         style={[
@@ -237,7 +308,7 @@ export default function Stats() {
                             },
                         ]}
                     >
-                        <Text style={styles.sparkleText}>✨</Text>
+                        <Octicons name="sparkles-fill" size={30} color="white" />
                     </Animated.View>
 
                     <Animated.View
@@ -268,10 +339,60 @@ export default function Stats() {
                                     styles.barFill,
                                     {
                                         width: progressWidth,
-                                        backgroundColor: levelStyle.bar,
+                                        backgroundColor: isAnimatingBar
+                                            ? "transparent"
+                                            : levelStyle.bar,
                                     },
                                 ]}
-                            />
+                            >
+                                {isAnimatingBar ? (
+                                    <Animated.View
+                                        style={[
+                                            styles.stripeLayer,
+                                            {
+                                                transform: [{ translateX: stripeTranslate }],
+                                            },
+                                        ]}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.stripeBlock,
+                                                { backgroundColor: levelStyle.stripeA },
+                                            ]}
+                                        />
+                                        <View
+                                            style={[
+                                                styles.stripeBlock,
+                                                { backgroundColor: levelStyle.stripeB },
+                                            ]}
+                                        />
+                                        <View
+                                            style={[
+                                                styles.stripeBlock,
+                                                { backgroundColor: levelStyle.stripeA },
+                                            ]}
+                                        />
+                                        <View
+                                            style={[
+                                                styles.stripeBlock,
+                                                { backgroundColor: levelStyle.stripeB },
+                                            ]}
+                                        />
+                                        <View
+                                            style={[
+                                                styles.stripeBlock,
+                                                { backgroundColor: levelStyle.stripeA },
+                                            ]}
+                                        />
+                                        <View
+                                            style={[
+                                                styles.stripeBlock,
+                                                { backgroundColor: levelStyle.stripeB },
+                                            ]}
+                                        />
+                                    </Animated.View>
+                                ) : null}
+                            </Animated.View>
                         </View>
                     </View>
 
@@ -303,39 +424,53 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 14,
         overflow: "hidden",
+        position: "relative",
     },
 
-    bubbleBlue: {
+    cardBubble: {
         position: "absolute",
-        top: -8,
-        right: 25,
-        width: 70,
-        height: 70,
         borderRadius: 999,
+        opacity: 0.35,
+    },
+
+    cardBubblePurple: {
+        width: 92,
+        height: 92,
+        top: -22,
+        right: -12,
+        backgroundColor: "#C4B5FD",
+    },
+
+    cardBubbleBlue: {
+        width: 64,
+        height: 64,
+        top: 16,
+        right: 90,
         backgroundColor: "#7DD3FC",
-        opacity: 0.25,
     },
 
-    bubbleYellow: {
-        position: "absolute",
-        bottom: -10,
-        left: 110,
-        width: 60,
-        height: 60,
-        borderRadius: 999,
+    cardBubbleYellow: {
+        width: 56,
+        height: 56,
+        bottom: -14,
+        left: 118,
         backgroundColor: "#FDE68A",
-        opacity: 0.3,
     },
 
-    bubbleGreen: {
-        position: "absolute",
-        top: 30,
-        left: -10,
-        width: 50,
-        height: 50,
-        borderRadius: 999,
+    cardBubbleGreen: {
+        width: 44,
+        height: 44,
+        top: 24,
+        left: -8,
         backgroundColor: "#86EFAC",
-        opacity: 0.28,
+    },
+
+    cardBubblePink: {
+        width: 34,
+        height: 34,
+        bottom: 18,
+        right: 28,
+        backgroundColor: "#F9A8D4",
     },
 
     leftSide: {
@@ -343,17 +478,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginRight: 12,
+        zIndex: 2,
     },
 
     sparkleWrap: {
         position: "absolute",
         top: -8,
         right: 4,
-        zIndex: 2,
-    },
-
-    sparkleText: {
-        fontSize: 28,
+        zIndex: 3,
     },
 
     levelCircle: {
@@ -381,6 +513,7 @@ const styles = StyleSheet.create({
 
     levelSection: {
         flex: 1,
+        zIndex: 2,
     },
 
     title: {
@@ -416,6 +549,23 @@ const styles = StyleSheet.create({
     barFill: {
         height: "100%",
         borderRadius: 999,
+        overflow: "hidden",
+        justifyContent: "center",
+    },
+
+    stripeLayer: {
+        flexDirection: "row",
+        position: "absolute",
+        left: -40,
+        top: 0,
+        bottom: 0,
+        width: "140%",
+        height: "100%",
+    },
+
+    stripeBlock: {
+        width: 40,
+        height: "100%",
     },
 
     progressRow: {
