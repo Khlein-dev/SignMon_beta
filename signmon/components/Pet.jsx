@@ -74,8 +74,10 @@ const styles = StyleSheet.create({
     },
 
     petImage: {
-        width: 350,
-        height: 350,
+        width: 380,
+        height: 380,
+        bottom: -50,
+        left: 0,
     },
 
     // 
