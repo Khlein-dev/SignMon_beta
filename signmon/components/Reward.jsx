@@ -46,7 +46,9 @@ export default function Reward() {
     ]).current;
 
     const cheerSoundRef = useRef(null);
+    const popSoundRef = useRef(null);
     const beamLoopRef = useRef(null);
+    const sfxVolumeRef = useRef(0.45);
 
     useEffect(() => {
         let mounted = true;
@@ -56,21 +58,46 @@ export default function Reward() {
                 await Audio.setAudioModeAsync({
                     playsInSilentModeIOS: true,
                     staysActiveInBackground: false,
+                    shouldDuckAndroid: true,
                 });
 
-                const { sound } = await Audio.Sound.createAsync(
-                    require("../assets/images/audio/cheer.mp3")
-                );
+                const savedSfxVolume = await AsyncStorage.getItem("sfxVolume");
+                const parsedSfxVolume =
+                    savedSfxVolume !== null ? Number(savedSfxVolume) : 0.45;
+
+                sfxVolumeRef.current = Number.isFinite(parsedSfxVolume)
+                    ? parsedSfxVolume
+                    : 0.45;
+
+                const [{ sound: cheerSound }, { sound: popSound }] =
+                    await Promise.all([
+                        Audio.Sound.createAsync(
+                            require("../assets/images/audio/cheer.mp3"),
+                            {
+                                shouldPlay: false,
+                                volume: sfxVolumeRef.current,
+                            }
+                        ),
+                        Audio.Sound.createAsync(
+                            require("../assets/images/audio/pop.mp3"),
+                            {
+                                shouldPlay: false,
+                                volume: sfxVolumeRef.current,
+                            }
+                        ),
+                    ]);
 
                 if (!mounted) {
-                    await sound.unloadAsync();
+                    await cheerSound.unloadAsync();
+                    await popSound.unloadAsync();
                     return;
                 }
 
-                cheerSoundRef.current = sound;
+                cheerSoundRef.current = cheerSound;
+                popSoundRef.current = popSound;
                 setIsSoundReady(true);
             } catch (error) {
-                console.log("Failed to load cheer sound:", error);
+                console.log("Failed to load reward sounds:", error);
             }
         };
 
@@ -88,19 +115,59 @@ export default function Reward() {
                 cheerSoundRef.current.unloadAsync();
                 cheerSoundRef.current = null;
             }
+
+            if (popSoundRef.current) {
+                popSoundRef.current.unloadAsync();
+                popSoundRef.current = null;
+            }
         };
+    }, []);
+
+    const refreshSfxVolume = useCallback(async () => {
+        try {
+            const savedSfxVolume = await AsyncStorage.getItem("sfxVolume");
+            const parsedSfxVolume =
+                savedSfxVolume !== null ? Number(savedSfxVolume) : 0.45;
+
+            sfxVolumeRef.current = Number.isFinite(parsedSfxVolume)
+                ? parsedSfxVolume
+                : 0.45;
+
+            if (cheerSoundRef.current) {
+                await cheerSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+
+            if (popSoundRef.current) {
+                await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+            }
+        } catch (error) {
+            console.log("Failed to refresh sfx volume:", error);
+        }
     }, []);
 
     const playCheer = useCallback(async () => {
         try {
             if (!cheerSoundRef.current) return;
 
+            await refreshSfxVolume();
             await cheerSoundRef.current.setPositionAsync(0);
-            await cheerSoundRef.current.playAsync();
+            await cheerSoundRef.current.replayAsync();
         } catch (error) {
             console.log("Failed to play cheer sound:", error);
         }
-    }, []);
+    }, [refreshSfxVolume]);
+
+    const playPop = useCallback(async () => {
+        try {
+            if (!popSoundRef.current) return;
+
+            await refreshSfxVolume();
+            await popSoundRef.current.setPositionAsync(0);
+            await popSoundRef.current.replayAsync();
+        } catch (error) {
+            console.log("Failed to play pop sound:", error);
+        }
+    }, [refreshSfxVolume]);
 
     const normalizeItems = (items = []) => {
         const mapped = items.map((item) => ({
@@ -195,7 +262,9 @@ export default function Reward() {
         }
     }, [visible, isSoundReady, playCheer]);
 
-    const handleClose = () => {
+    const handleClose = async () => {
+        await playPop();
+
         if (beamLoopRef.current) {
             beamLoopRef.current.stop();
             beamLoopRef.current = null;
