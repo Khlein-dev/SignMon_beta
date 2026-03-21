@@ -291,8 +291,9 @@ export default function Home() {
 
     return (
         <ImageBackground
-            source={require("../../assets/images/background.png")}
+            source={require("../../assets/images/draftBG.png")}
             style={styles.container}
+            resizeMode="cover"
         >
             <View style={styles.softBubbleOne} />
             <View style={styles.softBubbleTwo} />
