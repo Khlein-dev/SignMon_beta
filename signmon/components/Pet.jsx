@@ -1,71 +1,231 @@
-import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Animated, Image } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, StyleSheet, Animated, Image, Easing } from "react-native";
+
+const monkeyIdle = require("../assets/images/monkeyIDLE.png");
+const monkeyLeap = require("../assets/images/monkeyLeap.png");
+const monkeyHappy = require("../assets/images/monkeyHappy.png");
 
 export default function Pet({ hat, dress, necklace }) {
-
     const jumpAnim = useRef(new Animated.Value(0)).current;
+    const scaleXAnim = useRef(new Animated.Value(1)).current;
+    const scaleYAnim = useRef(new Animated.Value(1)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    const [monkeyImage, setMonkeyImage] = useState(monkeyIdle);
+
+    const happyTimeoutRef = useRef(null);
+    const intervalRef = useRef(null);
 
     useEffect(() => {
+        const doJump = () => {
+            setMonkeyImage(monkeyLeap);
 
-        const jump = () => {
             Animated.sequence([
-                Animated.timing(jumpAnim, {
-                    toValue: -40,
-                    duration: 250,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(jumpAnim, {
-                    toValue: 0,
-                    duration: 250,
-                    useNativeDriver: true,
-                }),
-            ]).start();
+                // little squash before jump
+                Animated.parallel([
+                    Animated.timing(scaleXAnim, {
+                        toValue: 1.08,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleYAnim, {
+                        toValue: 0.92,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: -1,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                ]),
+
+                // jump up and stretch
+                Animated.parallel([
+                    Animated.timing(jumpAnim, {
+                        toValue: -55,
+                        duration: 260,
+                        easing: Easing.out(Easing.cubic),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleXAnim, {
+                        toValue: 0.94,
+                        duration: 260,
+                        easing: Easing.out(Easing.cubic),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleYAnim, {
+                        toValue: 1.1,
+                        duration: 260,
+                        easing: Easing.out(Easing.cubic),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: 1,
+                        duration: 260,
+                        easing: Easing.out(Easing.cubic),
+                        useNativeDriver: true,
+                    }),
+                ]),
+
+                // land with a stronger squash
+                Animated.parallel([
+                    Animated.timing(jumpAnim, {
+                        toValue: 0,
+                        duration: 220,
+                        easing: Easing.in(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleXAnim, {
+                        toValue: 1.12,
+                        duration: 220,
+                        easing: Easing.in(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleYAnim, {
+                        toValue: 0.88,
+                        duration: 220,
+                        easing: Easing.in(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: -0.6,
+                        duration: 220,
+                        easing: Easing.in(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                ]),
+
+                // tiny rebound bounce
+                Animated.parallel([
+                    Animated.timing(jumpAnim, {
+                        toValue: -12,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleXAnim, {
+                        toValue: 0.98,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleYAnim, {
+                        toValue: 1.04,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: 0.5,
+                        duration: 120,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                ]),
+
+                // settle
+                Animated.parallel([
+                    Animated.timing(jumpAnim, {
+                        toValue: 0,
+                        duration: 140,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleXAnim, {
+                        toValue: 1,
+                        duration: 140,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleYAnim, {
+                        toValue: 1,
+                        duration: 140,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: 0,
+                        duration: 140,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                ]),
+            ]).start(() => {
+                setMonkeyImage(monkeyHappy);
+
+                happyTimeoutRef.current = setTimeout(() => {
+                    setMonkeyImage(monkeyIdle);
+                }, 350);
+            });
         };
 
-        const interval = setInterval(() => {
-            jump();
-        }, 4000); // jump every 4 seconds
+        intervalRef.current = setInterval(doJump, 4000);
 
-        return () => clearInterval(interval);
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (happyTimeoutRef.current) clearTimeout(happyTimeoutRef.current);
+        };
+    }, [jumpAnim, scaleXAnim, scaleYAnim, rotateAnim]);
 
-    }, []);
+    const rotate = rotateAnim.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ["-6deg", "6deg"],
+    });
 
-return (
-    <Animated.View
-        style={[
-            styles.petContainer,
-            { transform: [{ translateY: jumpAnim }] }
-        ]}
-    >
+    return (
+        <Animated.View
+            style={[
+                styles.petContainer,
+                {
+                    transform: [
+                        { translateY: jumpAnim },
+                        { scaleX: scaleXAnim },
+                        { scaleY: scaleYAnim },
+                        { rotate },
+                    ],
+                },
+            ]}
+        >
+            <View style={styles.petWrapper}>
+                <Image
+                    source={monkeyImage}
+                    style={styles.monkeyImage}
+                    resizeMode="contain"
+                />
 
-        <View style={styles.petWrapper}>
+                {hat && (
+                    <Image
+                        source={hat}
+                        style={styles.hat}
+                        resizeMode="contain"
+                    />
+                )}
 
-            <Image
-                source={require("../assets/images/pet.png")}
-                style={styles.petImage}
-                resizeMode="contain"
-            />
+                {dress && (
+                    <Image
+                        source={dress}
+                        style={styles.dress}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {hat && (
-                <Image source={hat} style={styles.hat} resizeMode="contain" />
-            )}
-
-            {dress && (
-                <Image source={dress} style={styles.dress} resizeMode="contain" />
-            )}
-
-            {necklace && (
-                <Image source={necklace} style={styles.necklace} resizeMode="contain" />
-            )}
-
-        </View>
-
-    </Animated.View>
-);
+                {necklace && (
+                    <Image
+                        source={necklace}
+                        style={styles.necklace}
+                        resizeMode="contain"
+                    />
+                )}
+            </View>
+        </Animated.View>
+    );
 }
 
 const styles = StyleSheet.create({
-
     petContainer: {
         width: 300,
         height: 300,
@@ -73,39 +233,42 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 
-    petImage: {
-        width: 380,
-        height: 380,
-        bottom: -50,
-        left: 0,
+    petWrapper: {
+        position: "relative",
+        width: 300,
+        height: 300,
+        alignItems: "center",
+        justifyContent: "center",
     },
 
-    // 
+    monkeyImage: {
+        width: 320,
+        height: 320,
+        top: 20,
 
-    petWrapper: {
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
-},
+    },
 
-hat: {
-    position: "absolute",
-    top: -20,
-    width: 160,
-    height: 160,
-},
+    hat: {
+        position: "absolute",
+        top: -120,
+        width: 320,
+        height: 320,
+        zIndex: 4,
+    },
 
-dress: {
-    position: "absolute",
-    top: 120,
-    width: 200,
-    height: 200,
-},
+    dress: {
+        position: "absolute",
+        top: 115,
+        width: 180,
+        height: 180,
+        zIndex: 2,
+    },
 
-necklace: {
-    position: "absolute",
-    top: 140,
-    width: 120,
-    height: 120,
-},
+    necklace: {
+        position: "absolute",
+        top: 120,
+        width: 100,
+        height: 100,
+        zIndex: 4,
+    },
 });
