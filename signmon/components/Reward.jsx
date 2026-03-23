@@ -13,19 +13,162 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 
+const REWARD_MAP = {
+    hat: [
+        {
+            key: "noHat",
+            name: "Walang Sombrero",
+            image: require("../assets/images/topHat.png"),
+        },
+        {
+            key: "topHat",
+            name: "Itim na Sombrero",
+            image: require("../assets/images/topHat.png"),
+        },
+        {
+            key: "santaHat",
+            name: "Sombrerong Pamasko",
+            image: require("../assets/images/santaHat.png"),
+        },
+        {
+            key: "superHat",
+            name: "Mahiwagang Sombrero",
+            image: require("../assets/images/superHat.png"),
+        },
+        {
+            key: "beanieHat",
+            name: "Beanie Sombrero",
+            image: require("../assets/images/beanieHat.png"),
+        },
+        {
+            key: "gokuHat",
+            name: "Goku na Sombrero",
+            image: require("../assets/images/gokuHat.png"),
+        },
+        {
+            key: "cowboyHat",
+            name: "Kowboy Sombrero",
+            image: require("../assets/images/cowboyHat.png"),
+        },
+        {
+            key: "crownHat",
+            name: "Maharlikang Sombrero",
+            image: require("../assets/images/crownHat.png"),
+        },
+    ],
+
+    dress: [
+        {
+            key: "noDress",
+            name: "Walang Damit",
+            image: require("../assets/images/noHat.png"),
+        },
+        {
+            key: "suitDress",
+            name: "Pormal na Damit",
+            image: require("../assets/images/suitDress.png"),
+        },
+        {
+            key: "jingleDress",
+            name: "Damit na Pamasko",
+            image: require("../assets/images/jingleDress.png"),
+        },
+        {
+            key: "superDress",
+            name: "Mahiwagang Damit",
+            image: require("../assets/images/superDress.png"),
+        },
+        {
+            key: "beanieDress",
+            name: "Beanie Damit",
+            image: require("../assets/images/beanieDress.png"),
+        },
+        {
+            key: "gokuDress",
+            name: "Goku na Damit",
+            image: require("../assets/images/gokuDress.png"),
+        },
+        {
+            key: "cowboyDress",
+            name: "Kowboy Damit",
+            image: require("../assets/images/cowboyDress.png"),
+        },
+        {
+            key: "crownDress",
+            name: "Maharlikang Damit",
+            image: require("../assets/images/crownDress.png"),
+        },
+    ],
+
+    necklace: [
+        {
+            key: "noAcc",
+            name: "Walang Gamit",
+            image: require("../assets/images/noHat.png"),
+        },
+        {
+            key: "suitAcc",
+            name: "Bulaklak",
+            image: require("../assets/images/suitAcc.png"),
+        },
+        {
+            key: "jingleAcc",
+            name: "Berry Leaf",
+            image: require("../assets/images/jingleAcc.png"),
+        },
+        {
+            key: "superAcc",
+            name: "Sorbetes",
+            image: require("../assets/images/superAcc.png"),
+        },
+        {
+            key: "beanieAcc",
+            name: "Boom Box",
+            image: require("../assets/images/beanieAcc.png"),
+        },
+        {
+            key: "gokuAcc",
+            name: "Doraemon",
+            image: require("../assets/images/gokuAcc.png"),
+        },
+        {
+            key: "cowboyAcc",
+            name: "Kabayo",
+            image: require("../assets/images/cowboyAcc.png"),
+        },
+        {
+            key: "crownAcc",
+            name: "Setro",
+            image: require("../assets/images/crownAcc.png"),
+        },
+    ],
+};
+
+function getRewardItem(type, index = 1) {
+    const list = REWARD_MAP[type];
+
+    if (!list || !Array.isArray(list) || list.length === 0) {
+        return {
+            name: "Gantimpala",
+            image: require("../assets/images/topHat.png"),
+        };
+    }
+
+    const safeIndex = Math.max(0, Math.min(index, list.length - 1));
+    return list[safeIndex];
+}
+
+function findRewardByKey(key) {
+    if (!key) return null;
+
+    const allRewards = Object.values(REWARD_MAP).flat();
+    return allRewards.find((reward) => reward.key === key) || null;
+}
+
 const DEFAULT_ITEMS = [
-    {
-        name: "Sombrero",
-        image: require("../assets/images/cowboy1.png"),
-    },
-    {
-        name: "Damit",
-        image: require("../assets/images/cat.png"),
-    },
-    {
-        name: "Kuwintas",
-        image: require("../assets/images/check.png"),
-    },
+    getRewardItem("hat", 1),
+    getRewardItem("dress", 1),
+    getRewardItem("necklace", 1),
 ];
 
 export default function Reward() {
@@ -169,18 +312,47 @@ export default function Reward() {
         }
     }, [refreshSfxVolume]);
 
-    const normalizeItems = (items = []) => {
-        const mapped = items.map((item) => ({
-            name: item?.name || "Gantimpala",
-            image: getRewardImage(item?.image),
-        }));
+    const normalizeItems = useCallback((items = []) => {
+        const mapped = items.map((item) => {
+            if (typeof item === "string") {
+                const byKey = findRewardByKey(item);
+                return byKey || getRewardItem(item, 1);
+            }
+
+            if (item?.key) {
+                const byKey = findRewardByKey(item.key);
+
+                if (byKey) {
+                    return {
+                        ...byKey,
+                        name: item.name || byKey.name,
+                    };
+                }
+            }
+
+            if (item?.type && REWARD_MAP[item.type]) {
+                return getRewardItem(item.type, item.index ?? item.variant ?? 1);
+            }
+
+            if (item?.image) {
+                return {
+                    name: item?.name || "Gantimpala",
+                    image: item.image,
+                };
+            }
+
+            return {
+                name: item?.name || "Gantimpala",
+                image: getRewardItem("hat", 0).image,
+            };
+        });
 
         while (mapped.length < 3) {
             mapped.push(DEFAULT_ITEMS[mapped.length]);
         }
 
         return mapped.slice(0, 3);
-    };
+    }, []);
 
     const animateIn = useCallback(() => {
         modalScale.setValue(0.82);
@@ -250,7 +422,7 @@ export default function Reward() {
         } catch (error) {
             console.log("Failed to load pending reward:", error);
         }
-    }, [animateIn, isSoundReady, playCheer]);
+    }, [animateIn, isSoundReady, normalizeItems, playCheer]);
 
     useEffect(() => {
         checkPendingReward();
@@ -295,6 +467,11 @@ export default function Reward() {
                         },
                     ]}
                 >
+                    <View style={styles.bubbleOne} />
+                    <View style={styles.bubbleTwo} />
+                    <View style={styles.bubbleThree} />
+                    <View style={styles.bubbleFour} />
+
                     <View style={styles.beamWrapper}>
                         <Animated.View
                             style={[
@@ -372,19 +549,6 @@ export default function Reward() {
     );
 }
 
-function getRewardImage(type) {
-    switch (type) {
-        case "hat":
-            return require("../assets/images/cowboy1.png");
-        case "dress":
-            return require("../assets/images/cat.png");
-        case "necklace":
-            return require("../assets/images/check.png");
-        default:
-            return require("../assets/images/noHat.png");
-    }
-}
-
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
@@ -408,11 +572,52 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
 
+    bubbleOne: {
+        position: "absolute",
+        width: 120,
+        height: 120,
+        borderRadius: 999,
+        backgroundColor: "rgba(255, 214, 102, 0.18)",
+        top: -30,
+        right: -15,
+    },
+
+    bubbleTwo: {
+        position: "absolute",
+        width: 70,
+        height: 70,
+        borderRadius: 999,
+        backgroundColor: "rgba(147, 197, 253, 0.22)",
+        top: 110,
+        left: -10,
+    },
+
+    bubbleThree: {
+        position: "absolute",
+        width: 48,
+        height: 48,
+        borderRadius: 999,
+        backgroundColor: "rgba(196, 181, 253, 0.2)",
+        bottom: 90,
+        right: 18,
+    },
+
+    bubbleFour: {
+        position: "absolute",
+        width: 30,
+        height: 30,
+        borderRadius: 999,
+        backgroundColor: "rgba(251, 207, 232, 0.22)",
+        top: 40,
+        left: 32,
+    },
+
     beamWrapper: {
         width: 180,
         height: 180,
         justifyContent: "center",
         alignItems: "center",
+        marginBottom: 8,
     },
 
     beamSpin: {
@@ -456,38 +661,41 @@ const styles = StyleSheet.create({
     },
 
     centerBadge: {
-        width: 90,
-        height: 90,
+        width: 92,
+        height: 92,
         borderRadius: 999,
-        backgroundColor: "#ffb86c",
+        backgroundColor: "#ffe48a",
         borderWidth: 5,
         borderColor: "#000000",
-        alignItems: "center",
         justifyContent: "center",
+        alignItems: "center",
+        zIndex: 2,
     },
 
     title: {
-        fontSize: 32,
-        color: "#2b1a00",
+        fontSize: 30,
         fontFamily: "HeyComic",
+        color: "#111827",
         textAlign: "center",
+        marginTop: 4,
     },
 
     subtitle: {
-        fontSize: 20,
-        color: "#4a3210",
+        fontSize: 18,
         fontFamily: "HeyComic",
+        color: "#1f2937",
         textAlign: "center",
         marginTop: 4,
     },
 
     unlockText: {
-        fontSize: 16,
-        color: "#6a4b1f",
+        fontSize: 14,
         fontFamily: "HeyComic",
+        color: "#4b5563",
         textAlign: "center",
         marginTop: 10,
-        marginBottom: 16,
+        marginBottom: 14,
+        lineHeight: 20,
     },
 
     rewardRow: {
@@ -504,32 +712,32 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         borderWidth: 4,
         borderColor: "#000000",
-        paddingVertical: 12,
+        paddingVertical: 10,
         paddingHorizontal: 8,
         alignItems: "center",
     },
 
     rewardImageWrap: {
-        width: 72,
-        height: 72,
+        width: 68,
+        height: 68,
         borderRadius: 999,
-        backgroundColor: "#e7f5ff",
+        backgroundColor: "#e0f2fe",
         borderWidth: 3,
         borderColor: "#000000",
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: "center",
         marginBottom: 8,
     },
 
     rewardImage: {
-        width: 52,
-        height: 52,
+        width: 90,
+        height: 90,
     },
 
     rewardName: {
-        fontSize: 14,
-        color: "#2b1a00",
+        fontSize: 12,
         fontFamily: "HeyComic",
+        color: "#2f1b00",
         textAlign: "center",
     },
 
@@ -538,15 +746,16 @@ const styles = StyleSheet.create({
         backgroundColor: "#22b07d",
         borderRadius: 20,
         borderWidth: 4,
-        borderColor: "#000000",
+        borderColor: "#0c5b40",
         paddingVertical: 14,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
         alignItems: "center",
+        justifyContent: "center",
     },
 
     okButtonText: {
-        color: "#ffffff",
         fontSize: 18,
         fontFamily: "HeyComic",
+        color: "#ffffff",
     },
 });
