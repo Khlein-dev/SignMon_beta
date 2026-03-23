@@ -258,17 +258,18 @@ const styles = StyleSheet.create({
 
     dress: {
         position: "absolute",
-        top: 115,
-        width: 180,
-        height: 180,
+        bottom: -55,
+        width: 175,
+        height: 175,
         zIndex: 2,
     },
 
     necklace: {
         position: "absolute",
-        top: 120,
-        width: 100,
-        height: 100,
+        top: 180,
+        width: 175,
+        height: 175,
+        left: -25,
         zIndex: 4,
     },
 });
