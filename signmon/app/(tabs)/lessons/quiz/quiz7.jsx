@@ -375,10 +375,20 @@ export default function Quiz7() {
                     JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
+                        rewardSet: "crownCosmetics",
                         items: [
-                            { name: "Sombrero", image: "hat" },
-                            { name: "Damit", image: "dress" },
-                            { name: "Kuwintas", image: "necklace" },
+                            {
+                                key: "crownHat",
+                                name: "Maharlikang Sombrero",
+                            },
+                            {
+                                key: "crownDress",
+                                name: "Maharlikang Damit",
+                            },
+                            {
+                                key: "crownAcc",
+                                name: "Setro",
+                            },
                         ],
                     })
                 );
@@ -590,7 +600,6 @@ export default function Quiz7() {
                             },
                         ]}
                     >
-                        <Text style={styles.modalEmoji}>👨‍👩‍👧</Text>
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
                             Panoorin ang video at hulaan ang tamang miyembro ng pamilya.
@@ -622,7 +631,6 @@ export default function Quiz7() {
                     >
                         {didWin ? (
                             <>
-                                <Text style={styles.modalEmoji}>🏆</Text>
                                 <Text style={styles.modalTitle}>Congratulations!</Text>
                                 <Text style={styles.modalText}>
                                     Nakakuha ka ng {score} / {QUESTION_COUNT}.
@@ -641,7 +649,6 @@ export default function Quiz7() {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.modalEmoji}>💡</Text>
                                 <Text style={styles.modalTitle}>Try Again</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} / {QUESTION_COUNT}.
@@ -953,11 +960,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         padding: 24,
         alignItems: "center",
-    },
-
-    modalEmoji: {
-        fontSize: 42,
-        marginBottom: 8,
     },
 
     modalTitle: {

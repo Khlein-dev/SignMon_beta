@@ -594,7 +594,6 @@ export default function Quiz8() {
                             },
                         ]}
                     >
-                        <Text style={styles.modalEmoji}>📅</Text>
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
                             Panoorin ang video at hulaan ang tamang araw ng linggo.
@@ -626,7 +625,6 @@ export default function Quiz8() {
                     >
                         {didWin ? (
                             <>
-                                <Text style={styles.modalEmoji}>🏆</Text>
                                 <Text style={styles.modalTitle}>Congratulations!</Text>
                                 <Text style={styles.modalText}>
                                     Nakakuha ka ng {score} / {QUESTION_COUNT}.
@@ -645,7 +643,6 @@ export default function Quiz8() {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.modalEmoji}>💡</Text>
                                 <Text style={styles.modalTitle}>Try Again</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} / {QUESTION_COUNT}.
@@ -956,11 +953,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         padding: 24,
         alignItems: "center",
-    },
-
-    modalEmoji: {
-        fontSize: 42,
-        marginBottom: 8,
     },
 
     modalTitle: {

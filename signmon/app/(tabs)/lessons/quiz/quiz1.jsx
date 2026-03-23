@@ -462,10 +462,26 @@ export default function Quiz1Screen() {
                     JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
+                        rewardSet: "suitCosmetics",
                         items: [
-                            { name: "Sombrero", image: "hat" },
-                            { name: "Damit", image: "dress" },
-                            { name: "Kuwintas", image: "necklace" },
+                            {
+                                type: "suitCosmetics",
+                                index: 0,
+                                key: "suitHat",
+                                name: "Pormal na Sombrero",
+                            },
+                            {
+                                type: "suitCosmetics",
+                                index: 1,
+                                key: "suitDress",
+                                name: "Pormal na Damit",
+                            },
+                            {
+                                type: "suitCosmetics",
+                                index: 2,
+                                key: "suitAcc",
+                                name: "Bulaklak",
+                            },
                         ],
                     })
                 );
@@ -722,7 +738,6 @@ export default function Quiz1Screen() {
                 </View>
 
                 <View style={styles.permissionCard}>
-                    <Text style={styles.permissionEmoji}>📷</Text>
                     <Text style={styles.permissionTitle}>Kailangan ang Camera</Text>
                     <Text style={styles.permissionText}>
                         Payagan ang camera para makita ng app ang iyong hand sign.
@@ -812,7 +827,7 @@ export default function Quiz1Screen() {
                 </View>
 
                 <View style={styles.cameraHintBadge}>
-                    <Text style={styles.cameraHintText}>🙌 Ilagay ang kamay sa gitna</Text>
+                    <Text style={styles.cameraHintText}> Ilagay ang kamay sa gitna</Text>
                 </View>
             </View>
 
@@ -826,38 +841,38 @@ export default function Quiz1Screen() {
             >
                 {!gameStarted ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🎯</Text>
+
                         <Text style={styles.feedbackText}>
                             Pindutin ang OK para simulan ang challenge.
                         </Text>
                     </>
                 ) : isChecking ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>👀</Text>
+
                         <Text style={styles.feedbackText}>Tinitingnan ang sign mo...</Text>
                     </>
                 ) : result === "correct" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🎉</Text>
+
                         <Text style={styles.correctText}>
                             Tama! Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "wrong" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🤔</Text>
+
                         <Text style={styles.wrongText}>
                             Mali — Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "error" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>⚠️</Text>
+
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     </>
                 ) : (
                     <>
-                        <Text style={styles.feedbackEmoji}>✋</Text>
+
                         <Text style={styles.feedbackText}>
                             Ipakita ang tamang sign sa camera.
                         </Text>
@@ -875,7 +890,7 @@ export default function Quiz1Screen() {
                             },
                         ]}
                     >
-                        <Text style={styles.modalEmoji}>⭐</Text>
+
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
                             Ipakita ang tamang FSL sign para sa mga titik A hanggang F.
@@ -906,7 +921,7 @@ export default function Quiz1Screen() {
                             },
                         ]}
                     >
-                        <Text style={styles.countdownEmoji}>⏳</Text>
+
                         <Text style={styles.countdownLabel}>Magsisimula sa</Text>
                         <Text style={styles.countdownNumber}>{countdown}</Text>
                     </Animated.View>
@@ -925,7 +940,7 @@ export default function Quiz1Screen() {
                     >
                         {didWin ? (
                             <>
-                                <Text style={styles.modalEmoji}>🏆</Text>
+
                                 <Text style={styles.modalTitle}>Congratulations!</Text>
                                 <Text style={styles.modalText}>
                                     Naabot mo ang {score} points. Tapos mo na ang Quiz 1!
@@ -944,7 +959,7 @@ export default function Quiz1Screen() {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.modalEmoji}>💡</Text>
+ 
                                 <Text style={styles.modalTitle}>Try Again</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} point{score === 1 ? "" : "s"}.
@@ -1224,10 +1239,6 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
 
-    feedbackEmoji: {
-        fontSize: 26,
-        marginBottom: 4,
-    },
 
     feedbackText: {
         fontSize: 19,
@@ -1265,11 +1276,6 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         padding: 22,
         alignItems: "center",
-    },
-
-    permissionEmoji: {
-        fontSize: 40,
-        marginBottom: 8,
     },
 
     permissionTitle: {
@@ -1322,10 +1328,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 
-    modalEmoji: {
-        fontSize: 42,
-        marginBottom: 8,
-    },
 
     modalTitle: {
         fontSize: 30,

@@ -464,10 +464,20 @@ export default function Quiz5Screen() {
                     JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
+                        rewardSet: "gokuCosmetics",
                         items: [
-                            { name: "Sombrero", image: "hat" },
-                            { name: "Damit", image: "dress" },
-                            { name: "Kuwintas", image: "necklace" },
+                            {
+                                key: "gokuHat",
+                                name: "Goku na Sombrero",
+                            },
+                            {
+                                key: "gokuDress",
+                                name: "Goku na Damit",
+                            },
+                            {
+                                key: "gokuAcc",
+                                name: "Doraemon",
+                            },
                         ],
                     })
                 );
@@ -723,7 +733,6 @@ export default function Quiz5Screen() {
                 </View>
 
                 <View style={styles.permissionCard}>
-                    <Text style={styles.permissionEmoji}>📷</Text>
                     <Text style={styles.permissionTitle}>Kailangan ang Camera</Text>
                     <Text style={styles.permissionText}>
                         Payagan ang camera para makita ng app ang iyong hand sign number.
@@ -813,7 +822,7 @@ export default function Quiz5Screen() {
                 </View>
 
                 <View style={styles.cameraHintBadge}>
-                    <Text style={styles.cameraHintText}>🙌 Ilagay ang kamay sa gitna</Text>
+                    <Text style={styles.cameraHintText}>Ilagay ang kamay sa gitna</Text>
                 </View>
             </View>
 
@@ -827,38 +836,32 @@ export default function Quiz5Screen() {
             >
                 {!gameStarted ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🎯</Text>
                         <Text style={styles.feedbackText}>
                             Pindutin ang OK para simulan ang number challenge.
                         </Text>
                     </>
                 ) : isChecking ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>👀</Text>
                         <Text style={styles.feedbackText}>Tinitingnan ang numero mo...</Text>
                     </>
                 ) : result === "correct" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🎉</Text>
                         <Text style={styles.correctText}>
                             Tama! Detected: {detectedNumber}
                         </Text>
                     </>
                 ) : result === "wrong" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🤔</Text>
                         <Text style={styles.wrongText}>
                             Mali. Detected: {detectedNumber}
                         </Text>
                     </>
                 ) : result === "error" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>⚠️</Text>
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     </>
                 ) : (
                     <>
-                        <Text style={styles.feedbackEmoji}>✋</Text>
                         <Text style={styles.feedbackText}>
                             Ipakita ang tamang number sign sa camera.
                         </Text>
@@ -876,7 +879,6 @@ export default function Quiz5Screen() {
                             },
                         ]}
                     >
-                        <Text style={styles.modalEmoji}>⭐</Text>
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
                             Ipakita ang tamang FSL sign para sa mga numero.
@@ -907,7 +909,6 @@ export default function Quiz5Screen() {
                             },
                         ]}
                     >
-                        <Text style={styles.countdownEmoji}>⏳</Text>
                         <Text style={styles.countdownLabel}>Magsisimula sa</Text>
                         <Text style={styles.countdownNumber}>{countdown}</Text>
                     </Animated.View>
@@ -926,7 +927,6 @@ export default function Quiz5Screen() {
                     >
                         {didWin ? (
                             <>
-                                <Text style={styles.modalEmoji}>🏆</Text>
                                 <Text style={styles.modalTitle}>Congratulations!</Text>
                                 <Text style={styles.modalText}>
                                     Naabot mo ang {score} tamang sagot. Tapos mo na ang Quiz 5!
@@ -945,7 +945,6 @@ export default function Quiz5Screen() {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.modalEmoji}>💡</Text>
                                 <Text style={styles.modalTitle}>Try Again</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} / {WIN_SCORE}.
@@ -1224,11 +1223,6 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
 
-    feedbackEmoji: {
-        fontSize: 26,
-        marginBottom: 4,
-    },
-
     feedbackText: {
         fontSize: 19,
         color: "#3E2F1C",
@@ -1265,11 +1259,6 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         padding: 22,
         alignItems: "center",
-    },
-
-    permissionEmoji: {
-        fontSize: 40,
-        marginBottom: 8,
     },
 
     permissionTitle: {
@@ -1320,11 +1309,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         padding: 24,
         alignItems: "center",
-    },
-
-    modalEmoji: {
-        fontSize: 42,
-        marginBottom: 8,
     },
 
     modalTitle: {
@@ -1433,11 +1417,6 @@ const styles = StyleSheet.create({
         paddingVertical: 26,
         paddingHorizontal: 20,
         alignItems: "center",
-    },
-
-    countdownEmoji: {
-        fontSize: 34,
-        marginBottom: 6,
     },
 
     countdownLabel: {

@@ -463,10 +463,20 @@ export default function Quiz3Screen() {
                     JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
+                        rewardSet: "superCosmetics",
                         items: [
-                            { name: "Headphones", image: "hat" },
-                            { name: "Shirt", image: "dress" },
-                            { name: "Medal", image: "necklace" },
+                            {
+                                key: "superHat",
+                                name: "Mahiwagang Sombrero",
+                            },
+                            {
+                                key: "superDress",
+                                name: "Mahiwagang Damit",
+                            },
+                            {
+                                key: "superAcc",
+                                name: "Sorbetes",
+                            },
                         ],
                     })
                 );
@@ -723,7 +733,6 @@ export default function Quiz3Screen() {
                 </View>
 
                 <View style={styles.permissionCard}>
-                    <Text style={styles.permissionEmoji}>📷</Text>
                     <Text style={styles.permissionTitle}>Kailangan ang Camera</Text>
                     <Text style={styles.permissionText}>
                         Payagan ang camera para makita ng app ang iyong hand sign.
@@ -813,7 +822,7 @@ export default function Quiz3Screen() {
                 </View>
 
                 <View style={styles.cameraHintBadge}>
-                    <Text style={styles.cameraHintText}>🙌 Ilagay ang kamay sa gitna</Text>
+                    <Text style={styles.cameraHintText}>Ilagay ang kamay sa gitna</Text>
                 </View>
             </View>
 
@@ -827,38 +836,32 @@ export default function Quiz3Screen() {
             >
                 {!gameStarted ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🎯</Text>
                         <Text style={styles.feedbackText}>
                             Pindutin ang OK para simulan ang challenge.
                         </Text>
                     </>
                 ) : isChecking ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>👀</Text>
                         <Text style={styles.feedbackText}>Tinitingnan ang sign mo...</Text>
                     </>
                 ) : result === "correct" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🎉</Text>
                         <Text style={styles.correctText}>
                             Correct! Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "wrong" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>🤔</Text>
                         <Text style={styles.wrongText}>
                             Wrong — Detected: {detectedLetter}
                         </Text>
                     </>
                 ) : result === "error" ? (
                     <>
-                        <Text style={styles.feedbackEmoji}>⚠️</Text>
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     </>
                 ) : (
                     <>
-                        <Text style={styles.feedbackEmoji}>✋</Text>
                         <Text style={styles.feedbackText}>
                             Show the sign in front of the camera.
                         </Text>
@@ -876,7 +879,6 @@ export default function Quiz3Screen() {
                             },
                         ]}
                     >
-                        <Text style={styles.modalEmoji}>⭐</Text>
                         <Text style={styles.modalTitle}>Handa ka na ba?</Text>
                         <Text style={styles.modalText}>
                             Ipakita ang tamang FSL sign para sa mga titik O hanggang S.
@@ -907,7 +909,6 @@ export default function Quiz3Screen() {
                             },
                         ]}
                     >
-                        <Text style={styles.countdownEmoji}>⏳</Text>
                         <Text style={styles.countdownLabel}>Starting in</Text>
                         <Text style={styles.countdownNumber}>{countdown}</Text>
                     </Animated.View>
@@ -926,7 +927,6 @@ export default function Quiz3Screen() {
                     >
                         {didWin ? (
                             <>
-                                <Text style={styles.modalEmoji}>🏆</Text>
                                 <Text style={styles.modalTitle}>Congratulations!</Text>
                                 <Text style={styles.modalText}>
                                     Naabot mo ang {score} points. Tapos mo na ang Quiz 3!
@@ -945,7 +945,6 @@ export default function Quiz3Screen() {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.modalEmoji}>💡</Text>
                                 <Text style={styles.modalTitle}>Try Again</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} point{score === 1 ? "" : "s"}.
@@ -1225,11 +1224,6 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
 
-    feedbackEmoji: {
-        fontSize: 26,
-        marginBottom: 4,
-    },
-
     feedbackText: {
         fontSize: 19,
         color: "#3E2F1C",
@@ -1266,11 +1260,6 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         padding: 22,
         alignItems: "center",
-    },
-
-    permissionEmoji: {
-        fontSize: 40,
-        marginBottom: 8,
     },
 
     permissionTitle: {
@@ -1321,11 +1310,6 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         padding: 24,
         alignItems: "center",
-    },
-
-    modalEmoji: {
-        fontSize: 42,
-        marginBottom: 8,
     },
 
     modalTitle: {
@@ -1434,11 +1418,6 @@ const styles = StyleSheet.create({
         paddingVertical: 26,
         paddingHorizontal: 20,
         alignItems: "center",
-    },
-
-    countdownEmoji: {
-        fontSize: 34,
-        marginBottom: 6,
     },
 
     countdownLabel: {
