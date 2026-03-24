@@ -6,23 +6,10 @@ import {
     Animated,
     Easing,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { Audio } from "expo-av";
 import Octicons from "@expo/vector-icons/Octicons";
 
-const QUIZ_KEYS = [
-    "quiz1Finished",
-    "quiz2Finished",
-    "quiz3Finished",
-    "quiz4Finished",
-    "quiz5Finished",
-    "quiz6Finished",
-    "quiz7Finished",
-    "quiz8Finished",
-];
-
-const BASE_PROGRESS = 50;
 const MAX_LEVEL = 9;
 
 const LEVEL_STYLES = {
@@ -37,37 +24,20 @@ const LEVEL_STYLES = {
     9: { bg: "#06B6D4", border: "#164E63", bar: "#A5F3FC", stripeA: "#CFFAFE", stripeB: "#ECFEFF" },
 };
 
-export default function Stats() {
+export default function Stats({ user }) {
     const [displayLevel, setDisplayLevel] = useState(1);
-    const [displayProgress, setDisplayProgress] = useState(BASE_PROGRESS);
+    const [displayProgress, setDisplayProgress] = useState(0);
     const [isAnimatingBar, setIsAnimatingBar] = useState(false);
 
-    const previousCompletedRef = useRef(0);
-    const isSyncingRef = useRef(false);
-
-    const progressAnim = useRef(new Animated.Value(BASE_PROGRESS)).current;
+    const progressAnim = useRef(new Animated.Value(0)).current;
     const levelScale = useRef(new Animated.Value(1)).current;
     const sparkleAnim = useRef(new Animated.Value(0)).current;
     const stripeTranslateAnim = useRef(new Animated.Value(0)).current;
 
     const levelUpSoundRef = useRef(null);
-    const progressListenerRef = useRef(null);
     const stripeLoopRef = useRef(null);
 
-    useEffect(() => {
-        progressListenerRef.current = progressAnim.addListener(({ value }) => {
-            setDisplayProgress(Math.round(value));
-        });
-
-        return () => {
-            if (progressListenerRef.current) {
-                progressAnim.removeListener(progressListenerRef.current);
-            } else {
-                progressAnim.removeAllListeners();
-            }
-        };
-    }, [progressAnim]);
-
+    // 🔊 Load sound
     useEffect(() => {
         let isActive = true;
 
@@ -113,17 +83,6 @@ export default function Stats() {
         }
     };
 
-    const getCompletedCount = async () => {
-        const entries = await AsyncStorage.multiGet(QUIZ_KEYS);
-        return entries.reduce((count, [, value]) => {
-            return value === "true" ? count + 1 : count;
-        }, 0);
-    };
-
-    const getLevelFromCompleted = (completedCount) => {
-        return Math.min(completedCount + 1, MAX_LEVEL);
-    };
-
     const stopStripeAnimation = () => {
         if (stripeLoopRef.current) {
             stripeLoopRef.current.stop();
@@ -149,16 +108,7 @@ export default function Stats() {
         stripeLoopRef.current.start();
     };
 
-    const resetStats = () => {
-        previousCompletedRef.current = 0;
-        setDisplayLevel(1);
-        setDisplayProgress(BASE_PROGRESS);
-        setIsAnimatingBar(false);
-        stopStripeAnimation();
-        progressAnim.setValue(BASE_PROGRESS);
-    };
-
-    const animateOneLevelUp = async (nextLevel) => {
+    const animateLevelUp = async (newLevel) => {
         await playLevelUp();
 
         setIsAnimatingBar(true);
@@ -169,21 +119,19 @@ export default function Stats() {
                 Animated.parallel([
                     Animated.timing(progressAnim, {
                         toValue: 100,
-                        duration: 900,
+                        duration: 800,
                         easing: Easing.out(Easing.cubic),
                         useNativeDriver: false,
                     }),
                     Animated.sequence([
                         Animated.timing(levelScale, {
-                            toValue: 1.18,
-                            duration: 180,
-                            easing: Easing.out(Easing.back(2)),
+                            toValue: 1.2,
+                            duration: 150,
                             useNativeDriver: true,
                         }),
                         Animated.timing(levelScale, {
                             toValue: 1,
-                            duration: 240,
-                            easing: Easing.out(Easing.ease),
+                            duration: 200,
                             useNativeDriver: true,
                         }),
                     ]),
@@ -191,80 +139,45 @@ export default function Stats() {
                         Animated.timing(sparkleAnim, {
                             toValue: 1,
                             duration: 200,
-                            easing: Easing.out(Easing.ease),
                             useNativeDriver: true,
                         }),
                         Animated.timing(sparkleAnim, {
                             toValue: 0,
-                            duration: 350,
-                            easing: Easing.in(Easing.ease),
+                            duration: 300,
                             useNativeDriver: true,
                         }),
                     ]),
                 ]),
-                Animated.delay(150),
             ]).start(() => {
                 stopStripeAnimation();
                 setIsAnimatingBar(false);
-                setDisplayLevel(nextLevel);
-                setDisplayProgress(BASE_PROGRESS);
-                progressAnim.setValue(BASE_PROGRESS);
+                setDisplayLevel(newLevel);
+                progressAnim.setValue(0);
                 resolve();
             });
         });
     };
 
+    // 🔥 MAIN SYNC WITH USER DATA
     const syncStats = useCallback(async () => {
-        if (isSyncingRef.current) return;
+        if (!user) return;
 
-        isSyncingRef.current = true;
+        let level = user.level || 1;
+        let exp = user.exp || 0;
 
-        try {
-            const completedCount = await getCompletedCount();
+        const expNeeded = level * 100;
+        const progressPercent = Math.min((exp / expNeeded) * 100, 100);
 
-            if (completedCount === 0) {
-                resetStats();
-                return;
-            }
+        setDisplayLevel(level);
+        setDisplayProgress(progressPercent);
 
-            const currentCompleted = previousCompletedRef.current;
-
-            if (completedCount < currentCompleted) {
-                previousCompletedRef.current = completedCount;
-                setDisplayLevel(getLevelFromCompleted(completedCount));
-                setDisplayProgress(BASE_PROGRESS);
-                setIsAnimatingBar(false);
-                stopStripeAnimation();
-                progressAnim.setValue(BASE_PROGRESS);
-                return;
-            }
-
-            if (completedCount === currentCompleted) {
-                return;
-            }
-
-            for (let step = currentCompleted + 1; step <= completedCount; step += 1) {
-                const nextLevel = getLevelFromCompleted(step);
-                await animateOneLevelUp(nextLevel);
-                previousCompletedRef.current = step;
-            }
-        } catch (error) {
-            console.log("Failed to load stats:", error);
-        } finally {
-            isSyncingRef.current = false;
-        }
-    }, [progressAnim]);
+        progressAnim.setValue(progressPercent);
+    }, [user]);
 
     useFocusEffect(
         useCallback(() => {
             syncStats();
-
-            const interval = setInterval(() => {
-                syncStats();
-            }, 800);
-
-            return () => clearInterval(interval);
-        }, [syncStats])
+        }, [syncStats, user])
     );
 
     const levelStyle = LEVEL_STYLES[displayLevel] || LEVEL_STYLES[9];
@@ -292,12 +205,6 @@ export default function Stats() {
     return (
         <View style={styles.container}>
             <View style={styles.card}>
-                <View style={[styles.cardBubble, styles.cardBubblePurple]} />
-                <View style={[styles.cardBubble, styles.cardBubbleBlue]} />
-                <View style={[styles.cardBubble, styles.cardBubbleYellow]} />
-                <View style={[styles.cardBubble, styles.cardBubbleGreen]} />
-                <View style={[styles.cardBubble, styles.cardBubblePink]} />
-
                 <View style={styles.leftSide}>
                     <Animated.View
                         style={[
@@ -328,9 +235,6 @@ export default function Stats() {
 
                 <View style={styles.levelSection}>
                     <Text style={styles.title}>Antas ng Bayani</Text>
-                    <Text style={styles.subtitle}>
-                        Tumataas ito kapag may natapos na quiz
-                    </Text>
 
                     <View style={styles.barShell}>
                         <View style={styles.barBackground}>
@@ -339,66 +243,20 @@ export default function Stats() {
                                     styles.barFill,
                                     {
                                         width: progressWidth,
-                                        backgroundColor: isAnimatingBar
-                                            ? "transparent"
-                                            : levelStyle.bar,
+                                        backgroundColor: levelStyle.bar,
                                     },
                                 ]}
-                            >
-                                {isAnimatingBar ? (
-                                    <Animated.View
-                                        style={[
-                                            styles.stripeLayer,
-                                            {
-                                                transform: [{ translateX: stripeTranslate }],
-                                            },
-                                        ]}
-                                    >
-                                        <View
-                                            style={[
-                                                styles.stripeBlock,
-                                                { backgroundColor: levelStyle.stripeA },
-                                            ]}
-                                        />
-                                        <View
-                                            style={[
-                                                styles.stripeBlock,
-                                                { backgroundColor: levelStyle.stripeB },
-                                            ]}
-                                        />
-                                        <View
-                                            style={[
-                                                styles.stripeBlock,
-                                                { backgroundColor: levelStyle.stripeA },
-                                            ]}
-                                        />
-                                        <View
-                                            style={[
-                                                styles.stripeBlock,
-                                                { backgroundColor: levelStyle.stripeB },
-                                            ]}
-                                        />
-                                        <View
-                                            style={[
-                                                styles.stripeBlock,
-                                                { backgroundColor: levelStyle.stripeA },
-                                            ]}
-                                        />
-                                        <View
-                                            style={[
-                                                styles.stripeBlock,
-                                                { backgroundColor: levelStyle.stripeB },
-                                            ]}
-                                        />
-                                    </Animated.View>
-                                ) : null}
-                            </Animated.View>
+                            />
                         </View>
                     </View>
 
                     <View style={styles.progressRow}>
-                        <Text style={styles.progressText}>{displayProgress}%</Text>
-                        <Text style={styles.progressHint}>Pag-level up</Text>
+                        <Text style={styles.progressText}>
+                            {Math.round(displayProgress)}%
+                        </Text>
+                        <Text style={styles.progressHint}>
+                            {user?.exp || 0} EXP
+                        </Text>
                     </View>
                 </View>
             </View>

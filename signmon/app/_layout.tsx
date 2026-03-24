@@ -8,10 +8,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFonts } from 'expo-font';
 import { View, ActivityIndicator } from 'react-native';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
 
   const colorScheme = useColorScheme();
@@ -30,10 +26,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
+      <Stack screenOptions={{ headerShown: false }} />
       <StatusBar style="auto" />
     </ThemeProvider>
   );

@@ -26,7 +26,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function Home() {
     const [openPanel, setOpenPanel] = useState(null);
-
+    const [user, setUser] = useState(null);
     const [hat, setHat] = useState(null);
     const [dress, setDress] = useState(null);
     const [necklace, setNecklace] = useState(null);
@@ -117,6 +117,24 @@ export default function Home() {
         updateSfxVolume();
     }, [sfxVolume]);
 
+    // 🔥 LOAD USER DATA
+    useEffect(() => {
+        const loadUser = async () => {
+            try {
+                const storedUser = await AsyncStorage.getItem("user");
+
+                if (storedUser) {
+                    const parsedUser = JSON.parse(storedUser);
+                    setUser(parsedUser);
+                }
+            } catch (error) {
+                console.log("Error loading user:", error);
+            }
+        };
+
+        loadUser();
+    }, []);
+
     const closePanels = () => {
         setOpenPanel(null);
     };
@@ -183,7 +201,6 @@ export default function Home() {
                 }
             );
 
-            // If user already left Home while sound was loading, clean it up
             if (bgSoundRef.current) {
                 await sound.unloadAsync();
             } else {
@@ -220,7 +237,6 @@ export default function Home() {
     useFocusEffect(
         useCallback(() => {
             playBackgroundMusic();
-
             return () => {
                 stopBackgroundMusic();
             };
@@ -299,8 +315,19 @@ export default function Home() {
             <View style={styles.softBubbleTwo} />
             <View style={styles.softBubbleThree} />
 
-            <Stats />
-            <Pet hat={hat} dress={dress} necklace={necklace} />
+            <Stats user={user} />
+
+            <View style={styles.usernameCard}>
+    <Text style={styles.username}>
+        {user ? user.name : ""}
+    </Text>
+</View>
+            {/* ✅ MASCOT (UNCHANGED) */}
+            <View style={styles.mascotContainer}>
+                <Pet hat={hat} dress={dress} necklace={necklace} />
+            </View>
+
+            {/* REST OF YOUR CODE UNCHANGED */}
 
             <Animated.View
                 style={[
@@ -622,4 +649,25 @@ const styles = StyleSheet.create({
         fontFamily: "HeyComic",
         fontSize: 13,
     },
+
+usernameCard: {
+    position: "absolute",
+    top: 240, 
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+
+    backgroundColor: "rgba(0, 0, 0, 0.35)", 
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.2)",
+
+    zIndex: 10,
+},
+
+username: {
+    fontSize: 40,
+    fontFamily: "HeyComic",
+    color: "#fff4c2",
+},
 });
