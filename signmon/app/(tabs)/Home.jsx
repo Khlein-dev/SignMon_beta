@@ -292,6 +292,7 @@ export default function Home() {
     const handleResetPress = async () => {
         await playPopSound();
         await clearProgress();
+        await AsyncStorage.clear();
     };
 
     const handleBottomNavigate = async (route) => {
