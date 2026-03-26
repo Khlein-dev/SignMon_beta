@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Animated, StyleSheet, Dimensions, Easing } from "react-native";
+import {
+    View,
+    Animated,
+    StyleSheet,
+    Dimensions,
+    Easing,
+    Pressable,
+    Text,
+} from "react-native";
+import { router } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
-const FRAME_SIZE = {
-    width,
-    height,
-};
+const STORY_HEIGHT = height * 0.84;
 
 export default function Story() {
     const [visible, setVisible] = useState({
@@ -632,196 +638,254 @@ export default function Story() {
     return (
         <View style={styles.screen}>
             <View style={styles.overlayGlow} />
-            <View style={styles.bubbleOne} />
-            <View style={styles.bubbleTwo} />
-            <View style={styles.bubbleThree} />
 
-            {visible.firstPanel && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/1stpanel.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 1,
-                            transform: [{ translateY: firstPanelFloat }],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+            <View style={styles.storyStage}>
+                <View style={styles.bubbleOne} />
+                <View style={styles.bubbleTwo} />
+                <View style={styles.bubbleThree} />
 
-            {visible.portal && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/portal.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 2,
-                            opacity: portalOpacity,
-                            transform: [
-                                { scaleX: portalScaleX },
-                                { scaleY: portalScaleY },
-                                { scale: portalPulse },
-                                { rotate: portalRotation },
-                            ],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.firstPanel && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/1stpanel.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 1,
+                                transform: [{ translateY: firstPanelFloat }],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.monkeyFalling && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/monkeyFalling.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 3,
-                            opacity: monkeyFallOpacity,
-                            transform: [
-                                { translateY: monkeyFallTranslateY },
-                                { rotate: monkeyFallRotation },
-                                { scale: monkeyFallScale },
-                            ],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.portal && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/portal.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 2,
+                                opacity: portalOpacity,
+                                transform: [
+                                    { scaleX: portalScaleX },
+                                    { scaleY: portalScaleY },
+                                    { scale: portalPulse },
+                                    { rotate: portalRotation },
+                                ],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.secondPanel && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/2ndpanel.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 4,
-                            opacity: secondPanelOpacity,
-                            transform: [{ scale: secondPanelPop }],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.monkeyFalling && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/monkeyFalling.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 3,
+                                opacity: monkeyFallOpacity,
+                                transform: [
+                                    { translateY: monkeyFallTranslateY },
+                                    { rotate: monkeyFallRotation },
+                                    { scale: monkeyFallScale },
+                                ],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.monkeyLand && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/monkeyLand.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 5,
-                            opacity: monkeyLandOpacity,
-                            transform: [
-                                { translateX: monkeyLandShakeX },
-                                { scaleX: monkeyLandSquashX },
-                                { scaleY: monkeyLandSquashY },
-                            ],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.secondPanel && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/2ndpanel.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 4,
+                                opacity: secondPanelOpacity,
+                                transform: [{ scale: secondPanelPop }],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.thirdPanel && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/3rdpanel.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 6,
-                            opacity: thirdPanelOpacity,
-                            transform: [{ scale: thirdPanelScale }],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.monkeyLand && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/monkeyLand.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 5,
+                                opacity: monkeyLandOpacity,
+                                transform: [
+                                    { translateX: monkeyLandShakeX },
+                                    { scaleX: monkeyLandSquashX },
+                                    { scaleY: monkeyLandSquashY },
+                                ],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.bubbleText1 && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/bubbleText1.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 7,
-                            opacity: bubble1Opacity,
-                            transform: [
-                                { translateX: bubble1ShakeX },
-                                { scale: bubble1Scale },
-                            ],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.thirdPanel && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/3rdpanel.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 6,
+                                opacity: thirdPanelOpacity,
+                                transform: [{ scale: thirdPanelScale }],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.bubbleText2 && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/bubbleText2.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 8,
-                            opacity: bubble2Opacity,
-                            transform: [
-                                { translateX: bubble2ShakeX },
-                                { scale: bubble2Scale },
-                            ],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.bubbleText1 && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/bubbleText1.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 7,
+                                opacity: bubble1Opacity,
+                                transform: [
+                                    { translateX: bubble1ShakeX },
+                                    { scale: bubble1Scale },
+                                ],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.fourthPanel && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/4thpanel.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 9,
-                            opacity: fourthPanelOpacity,
-                            transform: [{ translateY: fourthPanelSlideY }],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.bubbleText2 && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/bubbleText2.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 8,
+                                opacity: bubble2Opacity,
+                                transform: [
+                                    { translateX: bubble2ShakeX },
+                                    { scale: bubble2Scale },
+                                ],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.fifthPanel && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/5thpanel.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 10,
-                            opacity: fifthPanelOpacity,
-                            transform: [{ scale: fifthPanelScale }],
-                        },
-                    ]}
-                    resizeMode="contain"
-                />
-            )}
+                {visible.fourthPanel && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/4thpanel.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 9,
+                                opacity: fourthPanelOpacity,
+                                transform: [{ translateY: fourthPanelSlideY }],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
 
-            {visible.finalPanel && (
-                <Animated.Image
-                    source={require("../assets/images/storyboard/finalpanel.png")}
-                    style={[
-                        styles.image,
-                        {
-                            zIndex: 11,
-                            opacity: finalPanelOpacity,
-                            transform: [
-                                { translateX: finalPanelShakeX },
-                                { translateY: finalPanelShakeY },
-                                { scale: finalPanelScale },
-                            ],
-                        },
+                {visible.fifthPanel && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/5thpanel.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 10,
+                                opacity: fifthPanelOpacity,
+                                transform: [{ scale: fifthPanelScale }],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
+
+                {visible.finalPanel && (
+                    <Animated.Image
+                        source={require("../assets/images/storyboard/finalpanel.png")}
+                        style={[
+                            styles.image,
+                            {
+                                zIndex: 11,
+                                opacity: finalPanelOpacity,
+                                transform: [
+                                    { translateX: finalPanelShakeX },
+                                    { translateY: finalPanelShakeY },
+                                    { scale: finalPanelScale },
+                                ],
+                            },
+                        ]}
+                        resizeMode="contain"
+                    />
+                )}
+            </View>
+
+            <View style={styles.skipWrap}>
+                <Pressable
+                    onPress={() => router.push("/UserForm")}
+                    style={({ pressed }) => [
+                        styles.gridButton,
+                        pressed && styles.gridButtonPressed,
                     ]}
-                    resizeMode="contain"
-                />
-            )}
+                >
+                    <View
+                        style={[
+                            styles.cardBubble,
+                            styles.cardBubbleSmall,
+                            styles.cardBubbleBlue,
+                        ]}
+                    />
+                    <View
+                        style={[
+                            styles.cardBubble,
+                            styles.cardBubbleMedium,
+                            styles.cardBubblePink,
+                        ]}
+                    />
+                    <View
+                        style={[
+                            styles.cardBubble,
+                            styles.cardBubbleLarge,
+                            styles.cardBubbleYellow,
+                        ]}
+                    />
+                    <View
+                        style={[
+                            styles.cardBubble,
+                            styles.cardBubbleTiny,
+                            styles.cardBubblePurple,
+                        ]}
+                    />
+                    <View
+                        style={[
+                            styles.cardBubble,
+                            styles.extraBubbleLeft,
+                            styles.cardBubbleMint,
+                        ]}
+                    />
+                    <View
+                        style={[
+                            styles.cardBubble,
+                            styles.extraBubbleBottom,
+                            styles.cardBubbleLime,
+                        ]}
+                    />
+
+                    <Text style={styles.skipLabel}>Skip</Text>
+                </Pressable>
+            </View>
         </View>
     );
 }
@@ -830,8 +894,6 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: "#0d3d78",
-        alignItems: "center",
-        justifyContent: "center",
     },
 
     overlayGlow: {
@@ -839,10 +901,140 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(125, 211, 252, 0.08)",
     },
 
+    storyStage: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+    },
+
     image: {
         position: "absolute",
-        width: FRAME_SIZE.width,
-        height: FRAME_SIZE.height,
+        width,
+        height: STORY_HEIGHT,
+    },
+
+    skipWrap: {
+        paddingHorizontal: 20,
+        paddingTop: 3,
+        paddingBottom: 18,
+    },
+
+    gridButton: {
+        minHeight: 90,
+        backgroundColor: "#ffbe55",
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 28,
+        borderColor: "#5a3900",
+        borderWidth: 4,
+        paddingVertical: 18,
+        paddingHorizontal: 14,
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        overflow: "hidden",
+    },
+
+    gridButtonLocked: {
+        backgroundColor: "#d9d4cf",
+        borderColor: "#8a817c",
+    },
+
+    gridButtonNew: {
+        backgroundColor: "#8CF0B5",
+        borderColor: "#0C5B40",
+        shadowOpacity: 0.22,
+    },
+
+    gridButtonPressed: {
+        transform: [{ scale: 0.97 }],
+        opacity: 0.94,
+    },
+
+    skipLabel: {
+        fontSize: 24,
+        fontWeight: "900",
+        color: "#3b2200",
+        letterSpacing: 0.5,
+        zIndex: 2,
+    },
+
+    cardBubble: {
+        position: "absolute",
+        borderRadius: 999,
+        opacity: 0.33,
+    },
+
+    cardBubbleSmall: {
+        width: 38,
+        height: 38,
+        top: 12,
+        right: 12,
+    },
+
+    cardBubbleMedium: {
+        width: 56,
+        height: 56,
+        bottom: -8,
+        right: 14,
+    },
+
+    cardBubbleLarge: {
+        width: 78,
+        height: 78,
+        top: 38,
+        left: -16,
+    },
+
+    cardBubbleTiny: {
+        width: 22,
+        height: 22,
+        top: 44,
+        right: 38,
+    },
+
+    extraBubbleLeft: {
+        width: 30,
+        height: 30,
+        bottom: 16,
+        left: 26,
+    },
+
+    extraBubbleBottom: {
+        width: 22,
+        height: 22,
+        bottom: 14,
+        right: 80,
+    },
+
+    cardBubbleBlue: {
+        backgroundColor: "#93C5FD",
+    },
+
+    cardBubblePink: {
+        backgroundColor: "#F9A8D4",
+    },
+
+    cardBubbleYellow: {
+        backgroundColor: "#FDE68A",
+    },
+
+    cardBubblePurple: {
+        backgroundColor: "#C4B5FD",
+    },
+
+    cardBubbleMint: {
+        backgroundColor: "#A7F3D0",
+    },
+
+    cardBubbleLime: {
+        backgroundColor: "#D9F99D",
+    },
+
+    cardBubbleGray: {
+        backgroundColor: "#E7E5E4",
     },
 
     bubbleOne: {
