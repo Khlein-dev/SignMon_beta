@@ -14,7 +14,7 @@ export default function LoadingScreen() {
 
           // 👉 Navigate automatically
           setTimeout(() => {
-            router.replace("/UserForm");
+            router.replace("/Story");
           }, 500);
 
           return 100;
