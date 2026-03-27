@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
     View,
     Animated,
@@ -9,6 +9,7 @@ import {
     Text,
 } from "react-native";
 import { router } from "expo-router";
+import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 
 const { width, height } = Dimensions.get("window");
 
@@ -72,14 +73,61 @@ export default function Story() {
     const finalPanelShakeX = useRef(new Animated.Value(0)).current;
     const finalPanelShakeY = useRef(new Animated.Value(0)).current;
 
+    // Audio players
+    const portalOpeningPlayer = useAudioPlayer(
+        require("../assets/images/audio/portalOpening.mp3")
+    );
+    const fallingPlayer = useAudioPlayer(
+        require("../assets/images/audio/falling.mp3")
+    );
+    const monkeyLandPlayer = useAudioPlayer(
+        require("../assets/images/audio/monkeyLand.mp3")
+    );
+    const monkeySpeakPlayer = useAudioPlayer(
+        require("../assets/images/audio/monkeySpeak.mp3")
+    );
+    const bubblePlayer = useAudioPlayer(
+        require("../assets/images/audio/bubble.mp3")
+    );
+    const monkeyThinkPlayer = useAudioPlayer(
+        require("../assets/images/audio/monkeyThink.mp3")
+    );
+    const ideaPlayer = useAudioPlayer(
+        require("../assets/images/audio/idea.mp3")
+    );
+    const choirPlayer = useAudioPlayer(
+        require("../assets/images/audio/choir.mp3")
+    );
+    const popPlayer = useAudioPlayer(
+        require("../assets/images/audio/pop.mp3")
+    );
+
+    const replaySound = useCallback((player) => {
+        try {
+            player.seekTo(0);
+            player.play();
+        } catch (error) {
+            console.warn("Audio playback failed:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        setAudioModeAsync({
+            playsInSilentMode: true,
+        }).catch((error) => {
+            console.warn("Failed to set audio mode:", error);
+        });
+    }, []);
+
     useEffect(() => {
         const timers = [];
         let portalPulseLoop;
         let firstPanelFloatLoop;
 
-        const showAt = (delay, key, animation) => {
+        const showAt = (delay, key, animation, soundPlayer) => {
             const timer = setTimeout(() => {
                 setVisible((prev) => ({ ...prev, [key]: true }));
+                if (soundPlayer) replaySound(soundPlayer);
                 if (animation) animation();
             }, delay);
 
@@ -562,28 +610,34 @@ export default function Story() {
 
         startFirstPanelFloat();
 
-        showAt(2500, "portal", animatePortal);
-        showAt(3600, "monkeyFalling", animateMonkeyFalling);
+        showAt(2500, "portal", animatePortal, portalOpeningPlayer);
+        showAt(3600, "monkeyFalling", animateMonkeyFalling, fallingPlayer);
         hideAt(4600, "portal", animatePortalExit);
 
         showAt(5600, "secondPanel", animateSecondPanel);
-        showAt(6000, "monkeyLand", animateMonkeyLand);
+        showAt(6000, "monkeyLand", animateMonkeyLand, monkeyLandPlayer);
 
         showAt(7300, "thirdPanel", animateThirdPanel);
 
-        showAt(8000, "bubbleText1", () =>
-            animateBubble(bubble1Opacity, bubble1ShakeX, bubble1Scale)
+        showAt(
+            8000,
+            "bubbleText1",
+            () => animateBubble(bubble1Opacity, bubble1ShakeX, bubble1Scale),
+            monkeySpeakPlayer
         );
         hideAt(10000, "bubbleText1");
 
-        showAt(10050, "bubbleText2", () =>
-            animateBubble(bubble2Opacity, bubble2ShakeX, bubble2Scale)
+        showAt(
+            10050,
+            "bubbleText2",
+            () => animateBubble(bubble2Opacity, bubble2ShakeX, bubble2Scale),
+            bubblePlayer
         );
         hideAt(12050, "bubbleText2");
 
-        showAt(12350, "fourthPanel", animateFourthPanel);
-        showAt(13800, "fifthPanel", animateFifthPanel);
-        showAt(15400, "finalPanel", animateFinalPanel);
+        showAt(12350, "fourthPanel", animateFourthPanel, monkeyThinkPlayer);
+        showAt(13800, "fifthPanel", animateFifthPanel, ideaPlayer);
+        showAt(15400, "finalPanel", animateFinalPanel, choirPlayer);
 
         return () => {
             timers.forEach(clearTimeout);
@@ -623,6 +677,15 @@ export default function Story() {
         finalPanelScale,
         finalPanelShakeX,
         finalPanelShakeY,
+        portalOpeningPlayer,
+        fallingPlayer,
+        monkeyLandPlayer,
+        monkeySpeakPlayer,
+        bubblePlayer,
+        monkeyThinkPlayer,
+        ideaPlayer,
+        choirPlayer,
+        replaySound,
     ]);
 
     const portalRotation = portalRotate.interpolate({
@@ -634,6 +697,11 @@ export default function Story() {
         inputRange: [-15, 15],
         outputRange: ["-15deg", "15deg"],
     });
+
+    const handleSkip = () => {
+        replaySound(popPlayer);
+        router.push("/UserForm");
+    };
 
     return (
         <View style={styles.screen}>
@@ -834,7 +902,7 @@ export default function Story() {
 
             <View style={styles.skipWrap}>
                 <Pressable
-                    onPress={() => router.push("/UserForm")}
+                    onPress={handleSkip}
                     style={({ pressed }) => [
                         styles.gridButton,
                         pressed && styles.gridButtonPressed,
