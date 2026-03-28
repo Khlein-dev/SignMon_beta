@@ -120,29 +120,37 @@ export default function UserForm() {
 
           {step === 3 && (
             <Animated.View entering={FadeInRight} exiting={FadeOutLeft}>
-              <Text style={styles.title}>Piliin ang kasarian</Text>
+    <Text style={styles.title}>Piliin ang kasarian</Text>
 
-              <View style={styles.row}>
-                <TouchableOpacity
-                  style={[
-                    styles.option,
-                    gender === "Male" && styles.selected,
-                  ]}
-                  onPress={() => setGender("Male")}
-                >
-                  <Text style={styles.icon}>👦</Text>
-                  <Text style={styles.optionText}>Male</Text>
-                </TouchableOpacity>
+      <View style={styles.row}>
+      
+      <TouchableOpacity
+        style={[
+          styles.option,
+          gender === "Male" && styles.selected,
+        ]}
+        onPress={() => setGender("Male")}
+      >
+        <Image
+          source={require("../assets/images/Male_Blue.png")}
+          style={styles.genderImage}
+        />
+        <Text style={styles.optionText}>Male</Text>
+      </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.option,
-                    gender === "Female" && styles.selected,
-                  ]}
-                  onPress={() => setGender("Female")}
-                >
-                  <Text style={styles.icon}>👧</Text>
-                  <Text style={styles.optionText}>Female</Text>
+      
+      <TouchableOpacity
+        style={[
+          styles.option,
+          gender === "Female" && styles.selected,
+        ]}
+        onPress={() => setGender("Female")}
+      >
+        <Image
+          source={require("../assets/images/Female_Rose.png")}
+          style={styles.genderImage}
+        />
+        <Text style={styles.optionText}>Female</Text>
                 </TouchableOpacity>
               </View>
 
@@ -273,4 +281,25 @@ const styles = StyleSheet.create({
     fontFamily: "HeyComic",
     color: "#1b1208",
   },
+
+  genderImage: {
+  width: 80,
+  height: 80,
+  resizeMode: "contain",
+  marginBottom: 8,
+},
+option: {
+  backgroundColor: "#eee",
+  padding: 20,
+  borderRadius: 20,
+  borderWidth: 4,
+  borderColor: "#000",
+  alignItems: "center",
+  width: 130,
+},
+
+selected: {
+  backgroundColor: "#8A5CF6",
+},
+
 });

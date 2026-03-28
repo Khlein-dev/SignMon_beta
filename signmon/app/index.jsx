@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Text } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Image,
+} from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0);
@@ -12,7 +18,6 @@ export default function LoadingScreen() {
         if (prev >= 100) {
           clearInterval(interval);
 
-          // 👉 Navigate automatically
           setTimeout(() => {
             router.replace("/Story");
           }, 500);
@@ -27,45 +32,121 @@ export default function LoadingScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Loading SignMon...</Text>
+    <LinearGradient
+      colors={["#4c1d95", "#2e1065"]}
+      style={styles.container}
+    >
+   
+      <View style={styles.bubble1} />
+      <View style={styles.bubble2} />
+      <View style={styles.bubble3} />
 
+  
+      <Image
+        source={require("../assets/images/logo.png")} 
+        style={styles.logo}
+      />
+
+  
+      <Text style={styles.title}>SIGNMON</Text>
+      <Text style={styles.subtitle}>Preparing your experience...</Text>
+
+  
       <View style={styles.barContainer}>
-        <View style={[styles.barFill, { width: `${progress}%` }]} />
+        <View style={styles.barBg}>
+          <LinearGradient
+            colors={["#facc15", "#a855f7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.barFill, { width: `${progress}%` }]}
+          />
+        </View>
       </View>
 
       <Text style={styles.percent}>{progress}%</Text>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
   },
+
+ 
+  bubble1: {
+    position: "absolute",
+    top: 120,
+    left: 40,
+    width: 120,
+    height: 120,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+
+  bubble2: {
+    position: "absolute",
+    bottom: 120,
+    right: 40,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+
+  bubble3: {
+    position: "absolute",
+    top: 250,
+    right: 80,
+    width: 60,
+    height: 60,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.07)",
+  },
+
+  
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+
   title: {
-    fontSize: 26,
-    color: "white",
-    marginBottom: 30,
-    fontWeight: "bold",
+    fontSize: 32,
+    color: "#fff",
+    fontFamily: "HeyComic",
   },
+
+  subtitle: {
+    fontSize: 14,
+    color: "#ddd",
+    marginBottom: 20,
+  },
+
+  
   barContainer: {
-    width: "70%",
-    height: 20,
-    backgroundColor: "#1e293b",
-    borderRadius: 10,
+    width: "60%",
+  },
+
+  barBg: {
+    width: "100%",
+    height: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 999,
     overflow: "hidden",
   },
+
   barFill: {
     height: "100%",
-    backgroundColor: "#22c55e",
+    borderRadius: 999,
   },
+
   percent: {
     marginTop: 10,
-    color: "white",
-    fontSize: 16,
+    color: "#fff",
+    fontSize: 14,
   },
 });

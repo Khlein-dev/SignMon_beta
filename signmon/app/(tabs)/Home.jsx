@@ -117,7 +117,7 @@ export default function Home() {
         updateSfxVolume();
     }, [sfxVolume]);
 
-    // 🔥 LOAD USER DATA
+   
     useEffect(() => {
         const loadUser = async () => {
             try {
@@ -293,6 +293,11 @@ export default function Home() {
         await playPopSound();
         await clearProgress();
         await AsyncStorage.clear();
+        setUser(null);
+        setDress(null);
+        setHat(null);
+        setNecklace(null);
+        alert("Progress has been reset!");
     };
 
     const handleBottomNavigate = async (route) => {
@@ -319,16 +324,16 @@ export default function Home() {
             <Stats user={user} />
 
             <View style={styles.usernameCard}>
-    <Text style={styles.username}>
-        {user ? user.name : ""}
-    </Text>
-</View>
-            {/* ✅ MASCOT (UNCHANGED) */}
+                <Text style={styles.username}>
+                    {user ? user.name : ""}
+            </Text>
+            </View>
+            
             <View style={styles.mascotContainer}>
                 <Pet hat={hat} dress={dress} necklace={necklace} />
             </View>
 
-            {/* REST OF YOUR CODE UNCHANGED */}
+            
 
             <Animated.View
                 style={[
