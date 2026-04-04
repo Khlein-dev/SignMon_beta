@@ -10,8 +10,24 @@ app.use(express.json());
 mongoose.connect(
   "mongodb://appuser:fLT4USem1PDH98VK@ac-fdzwgpp-shard-00-00.2e0xmsx.mongodb.net:27017,ac-fdzwgpp-shard-00-01.2e0xmsx.mongodb.net:27017,ac-fdzwgpp-shard-00-02.2e0xmsx.mongodb.net:27017/mobileAppDB?ssl=true&replicaSet=atlas-owt04o-shard-0&authSource=admin&retryWrites=true&w=majority&appName=signmon-cluster"
 )
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.log("❌ MongoDB error:", err));
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("MongoDB error:", err));
+
+
+const adminSchema = new mongoose.Schema({
+  email: String,
+  password: String,
+  role: {
+    type: String,
+    default: "admin",
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+const Admin = mongoose.model("Admin", adminSchema);
 
 
 const counterSchema = new mongoose.Schema({
@@ -30,26 +46,31 @@ const getNextSequence = async (name) => {
   return counter.sequence_value;
 };
 
-
 const userSchema = new mongoose.Schema({
   userId: Number,
   name: String,
   age: String,
   gender: String,
 
-  level: {
-    type: Number,
-    default: 1,
-  },
-
-  xp: {
-    type: Number,
-    default: 0,
-  },
+  level: { type: Number, default: 1 },
+  xp: { type: Number, default: 0 },
 
   completedLessons: {
     type: [String],
     default: [],
+  },
+
+
+  lessonStats: {
+    type: Map,
+    of: Number,
+    default: {},
+  },
+
+
+  totalTimeSpent: {
+    type: Number,
+    default: 0, 
   },
 
   createdAt: {
@@ -60,6 +81,69 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
+
+
+app.post("/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const admin = await Admin.findOne({ email });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    if (admin.password !== password) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    res.json({
+      message: "Login successful",
+      admin: {
+        email: admin.email,
+        role: admin.role,
+      },
+    });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+
+app.post("/admin/create", async (req, res) => {
+  try {
+    const admin = new Admin({
+      email: "admin@signmon.com",
+      password: "admin123",
+    });
+
+    await admin.save();
+
+    res.json({ message: "Admin created!" });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+
+app.get("/admin/users", async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+
+app.delete("/admin/user/:id", async (req, res) => {
+  try {
+    await User.deleteOne({ userId: req.params.id });
+    res.json({ message: "User deleted" });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
 
 
 app.post("/users", async (req, res) => {
@@ -79,9 +163,6 @@ app.post("/users", async (req, res) => {
       name,
       age,
       gender,
-      level: 1,
-      xp: 0,
-      completedLessons: [],
     });
 
     await user.save();
@@ -94,8 +175,6 @@ app.post("/users", async (req, res) => {
     res.status(500).json(err);
   }
 });
-
-
 
 app.post("/complete-lesson", async (req, res) => {
   try {
@@ -115,25 +194,24 @@ app.post("/complete-lesson", async (req, res) => {
       });
     }
 
-
-    if (user.completedLessons.includes(lessonId)) {
-      return res.json({
-        message: "Lesson already completed",
-        user,
-      });
+  
+    if (!user.completedLessons.includes(lessonId)) {
+      user.completedLessons.push(lessonId);
     }
 
 
-    user.completedLessons.push(lessonId);
+    user.lessonStats.set(
+      lessonId,
+      (user.lessonStats.get(lessonId) || 0) + 1
+    );
 
-    // Add XP
-    user.xp += 100; // Each lesson gives 100 XP
 
-    // 🔥 LEVEL SYSTEM (IMPROVED)
-    while (user.xp >= 100) {
-      user.level += 1;
-      user.xp -= 100;
-    }
+    user.xp += 100;
+
+while (user.xp >= user.level * 100) {
+  user.xp -= user.level * 100;
+  user.level += 1;
+}
 
     await user.save();
 
@@ -147,11 +225,11 @@ app.post("/complete-lesson", async (req, res) => {
 });
 
 
-app.get("/user/:userId", async (req, res) => {
+app.post("/track-time", async (req, res) => {
   try {
-    const user = await User.findOne({
-      userId: req.params.userId,
-    });
+    const { userId, seconds } = req.body;
+
+    const user = await User.findOne({ userId });
 
     if (!user) {
       return res.status(404).json({
@@ -159,7 +237,53 @@ app.get("/user/:userId", async (req, res) => {
       });
     }
 
-    res.json(user);
+    user.totalTimeSpent += seconds;
+
+    await user.save();
+
+    res.json({
+      message: "Time updated",
+      totalTimeSpent: user.totalTimeSpent,
+    });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+
+
+// 🧠 MOST COMPLETED LESSONS
+app.get("/admin/analytics/lessons", async (req, res) => {
+  try {
+    const users = await User.find();
+
+    const lessonMap = {};
+
+    users.forEach((user) => {
+      if (user.lessonStats) {
+        user.lessonStats.forEach((count, lesson) => {
+          lessonMap[lesson] = (lessonMap[lesson] || 0) + count;
+        });
+      }
+    });
+
+    res.json(lessonMap);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+
+app.get("/admin/analytics/time", async (req, res) => {
+  try {
+    const users = await User.find();
+
+    const result = users.map((u) => ({
+      name: u.name,
+      time: u.totalTimeSpent || 0,
+    }));
+
+    res.json(result);
   } catch (err) {
     res.status(500).json(err);
   }

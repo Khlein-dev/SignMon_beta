@@ -16,8 +16,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 
+const EXP_REWARD = 100;
 const LETTERS = ["P", "Q", "R", "S"];
-const API_URL = "http://192.168.1.2:8000/detect-sign/quiz3";
+const API_URL = "http://10.28.29.160:8000/detect-sign/quiz3";
 
 const DETECTION_INTERVAL = 50;
 const ROUND_TIME = 60;
@@ -449,18 +450,56 @@ export default function Quiz3Screen() {
         }
     }, []);
 
+const rewardUser = async () => {
+    try {
+        const userId = await AsyncStorage.getItem("userId");
+
+        if (!userId) {
+            console.log("❌ No userId found!");
+            return;
+        }
+
+        console.log("✅ Sending userId:", userId);
+
+        const res = await fetch("http://192.168.100.5:5000/complete-lesson", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                userId: Number(userId),
+                lessonId: "quiz3",
+            }),
+        });
+
+        const data = await res.json();
+
+        console.log("✅ SERVER RESPONSE:", data);
+
+        await AsyncStorage.setItem("user", JSON.stringify(data.user));
+        await AsyncStorage.setItem("xp", data.user.xp.toString());
+        await AsyncStorage.setItem("level", data.user.level.toString());
+
+    } catch (err) {
+        console.log("❌ rewardUser error:", err);
+    }
+};
+
     const finishGame = useCallback(
-        async (won) => {
-            clearAllTimers();
-            setGameStarted(false);
-            setDidWin(won);
+    async (won) => {
+        clearAllTimers();
+        setGameStarted(false);
+        setDidWin(won);
 
-            if (won) {
-                await markQuizAsFinished();
+        if (won) {
+            await markQuizAsFinished();
 
-                await AsyncStorage.setItem(
-                    "pendingQuizReward",
-                    JSON.stringify({
+           
+            await rewardUser();
+
+            await AsyncStorage.setItem(
+                "pendingQuizReward",
+                JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
                         rewardSet: "superCosmetics",

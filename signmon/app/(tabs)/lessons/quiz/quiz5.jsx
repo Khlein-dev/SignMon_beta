@@ -16,8 +16,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 
+const EXP_REWARD = 100;
 const NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-const API_URL = "http://192.168.1.2:8000/detect-sign/quiz5";
+const API_URL = "http://192.168.100.5:8000/detect-sign/quiz5";
 
 const DETECTION_INTERVAL = 100;
 const ROUND_TIME = 90;
@@ -450,18 +451,56 @@ export default function Quiz5Screen() {
         }
     }, []);
 
-    const finishGame = useCallback(
-        async (won) => {
-            clearAllTimers();
-            setGameStarted(false);
-            setDidWin(won);
+    const rewardUser = async () => {
+    try {
+        const userId = await AsyncStorage.getItem("userId");
 
-            if (won) {
-                await markLessonPassed();
+        if (!userId) {
+            console.log("❌ No userId found!");
+            return;
+        }
 
-                await AsyncStorage.setItem(
-                    "pendingQuizReward",
-                    JSON.stringify({
+        console.log("✅ Sending userId:", userId);
+
+        const res = await fetch("http://10.28.29.160:5000/complete-lesson", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                userId: Number(userId),
+                lessonId: "quiz5",
+            }),
+        });
+
+        const data = await res.json();
+
+        console.log("✅ SERVER RESPONSE:", data);
+
+        await AsyncStorage.setItem("user", JSON.stringify(data.user));
+        await AsyncStorage.setItem("xp", data.user.xp.toString());
+        await AsyncStorage.setItem("level", data.user.level.toString());
+
+    } catch (err) {
+        console.log("❌ rewardUser error:", err);
+    }
+};
+
+     const finishGame = useCallback(
+    async (won) => {
+        clearAllTimers();
+        setGameStarted(false);
+        setDidWin(won);
+
+        if (won) {
+            await markQuizAsFinished();
+
+           
+            await rewardUser();
+
+            await AsyncStorage.setItem(
+                "pendingQuizReward",
+                JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
                         rewardSet: "gokuCosmetics",
@@ -488,6 +527,14 @@ export default function Quiz5Screen() {
         },
         [clearAllTimers, markLessonPassed, animateModal]
     );
+
+    const markQuizAsFinished = async () => {
+    try {
+        await AsyncStorage.setItem("quiz5Finished", "true");
+    } catch (error) {
+        console.log("Error saving quiz finish:", error);
+    }
+};
 
     const startLiveRound = useCallback(() => {
         setGameStarted(true);

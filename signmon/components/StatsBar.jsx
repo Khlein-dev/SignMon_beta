@@ -24,7 +24,7 @@ const LEVEL_STYLES = {
     9: { bg: "#06B6D4", border: "#164E63", bar: "#A5F3FC", stripeA: "#CFFAFE", stripeB: "#ECFEFF" },
 };
 
-export default function Stats({ user }) {
+export default function Stats() {
     const [displayLevel, setDisplayLevel] = useState(1);
     const [displayProgress, setDisplayProgress] = useState(0);
     const [isAnimatingBar, setIsAnimatingBar] = useState(false);
@@ -160,24 +160,24 @@ export default function Stats({ user }) {
 
     // 🔥 MAIN SYNC WITH USER DATA
     const syncStats = useCallback(async () => {
-        if (!user) return;
+        //     if (!user) return;
 
-        let level = user.level || 1;
-        let exp = user.exp || 0;
+        //     let level = user.level || 1;
+        //     let xp = user.xp || 0;
 
-        const expNeeded = level * 100;
-        const progressPercent = Math.min((exp / expNeeded) * 100, 100);
+        //     const expNeeded = level * 100;
+        //     const progressPercent = Math.min((xp / expNeeded) * 100, 100);
 
-        setDisplayLevel(level);
-        setDisplayProgress(progressPercent);
+        //     setDisplayLevel(level);
+        //     setDisplayProgress(progressPercent);
 
-        progressAnim.setValue(progressPercent);
-    }, [user]);
+        //     progressAnim.setValue(progressPercent);
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
             syncStats();
-        }, [syncStats, user])
+        }, [syncStats])
     );
 
     const levelStyle = LEVEL_STYLES[displayLevel] || LEVEL_STYLES[9];
@@ -255,7 +255,8 @@ export default function Stats({ user }) {
                             {Math.round(displayProgress)}%
                         </Text>
                         <Text style={styles.progressHint}>
-                            {user?.exp || 0} EXP
+                            {/* {user?.xp || 0} EXP */}
+                                0 EXP
                         </Text>
                     </View>
                 </View>

@@ -26,7 +26,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function Home() {
     const [openPanel, setOpenPanel] = useState(null);
-    const [user, setUser] = useState(null);
+    // const [user, setUser] = useState(null);
     const [hat, setHat] = useState(null);
     const [dress, setDress] = useState(null);
     const [necklace, setNecklace] = useState(null);
@@ -118,22 +118,36 @@ export default function Home() {
     }, [sfxVolume]);
 
    
-    useEffect(() => {
-        const loadUser = async () => {
-            try {
-                const storedUser = await AsyncStorage.getItem("user");
+   useFocusEffect(
+    useCallback(() => {
+        
+        // const loadUser = async () => {
+        //     try {
+        //         const storedUser = await AsyncStorage.getItem("user");
+        //         const xp = await AsyncStorage.getItem("xp");
+        //         const level = await AsyncStorage.getItem("level");
 
-                if (storedUser) {
-                    const parsedUser = JSON.parse(storedUser);
-                    setUser(parsedUser);
-                }
-            } catch (error) {
-                console.log("Error loading user:", error);
-            }
-        };
+        //         if (storedUser) {
+        //             const parsedUser = JSON.parse(storedUser);
 
-        loadUser();
-    }, []);
+        //             const updatedUser = {
+        //                 ...parsedUser,
+        //                 xp: Number(xp) || 0,
+        //                 level: Number(level) || 1,
+        //             };
+
+        //             console.log("UPDATED USER:", updatedUser);
+
+        //             setUser(updatedUser);
+        //         }
+        //     } catch (error) {
+        //         console.log("Error loading user:", error);
+        //     }
+        // };
+
+        // loadUser();
+    }, [])
+);
 
     const closePanels = () => {
         setOpenPanel(null);
@@ -293,7 +307,7 @@ export default function Home() {
         await playPopSound();
         await clearProgress();
         await AsyncStorage.clear();
-        setUser(null);
+        // setUser(null);
         setDress(null);
         setHat(null);
         setNecklace(null);
@@ -321,11 +335,12 @@ export default function Home() {
             <View style={styles.softBubbleTwo} />
             <View style={styles.softBubbleThree} />
 
-            <Stats user={user} />
+            <Stats />
 
             <View style={styles.usernameCard}>
                 <Text style={styles.username}>
-                    {user ? user.name : ""}
+                    {/* {user ? user.name : ""} */}
+                    Player
             </Text>
             </View>
             

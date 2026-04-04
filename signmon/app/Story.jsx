@@ -700,7 +700,7 @@ export default function Story() {
 
     const handleSkip = () => {
         replaySound(popPlayer);
-        router.push("/UserForm");
+        router.push("/(tabs)/Home");
     };
 
     return (
