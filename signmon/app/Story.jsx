@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
     View,
     Animated,
@@ -8,11 +8,10 @@ import {
     Pressable,
     Text,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 
 const { width, height } = Dimensions.get("window");
-
 const STORY_HEIGHT = height * 0.84;
 
 export default function Story() {
@@ -102,6 +101,31 @@ export default function Story() {
         require("../assets/images/audio/pop.mp3")
     );
 
+    const players = useMemo(
+        () => [
+            portalOpeningPlayer,
+            fallingPlayer,
+            monkeyLandPlayer,
+            monkeySpeakPlayer,
+            bubblePlayer,
+            monkeyThinkPlayer,
+            ideaPlayer,
+            choirPlayer,
+            popPlayer,
+        ],
+        [
+            portalOpeningPlayer,
+            fallingPlayer,
+            monkeyLandPlayer,
+            monkeySpeakPlayer,
+            bubblePlayer,
+            monkeyThinkPlayer,
+            ideaPlayer,
+            choirPlayer,
+            popPlayer,
+        ]
+    );
+
     const replaySound = useCallback((player) => {
         try {
             player.seekTo(0);
@@ -111,6 +135,17 @@ export default function Story() {
         }
     }, []);
 
+    const stopAllSounds = useCallback(() => {
+        for (const player of players) {
+            try {
+                player.pause();
+                player.seekTo(0);
+            } catch (error) {
+                // ignore individual player cleanup errors
+            }
+        }
+    }, [players]);
+
     useEffect(() => {
         setAudioModeAsync({
             playsInSilentMode: true,
@@ -118,6 +153,15 @@ export default function Story() {
             console.warn("Failed to set audio mode:", error);
         });
     }, []);
+
+    // Stop everything as soon as this route loses focus.
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                stopAllSounds();
+            };
+        }, [stopAllSounds])
+    );
 
     useEffect(() => {
         const timers = [];
@@ -643,6 +687,7 @@ export default function Story() {
             timers.forEach(clearTimeout);
             if (portalPulseLoop) portalPulseLoop.stop();
             if (firstPanelFloatLoop) firstPanelFloatLoop.stop();
+            stopAllSounds();
         };
     }, [
         firstPanelFloat,
@@ -686,6 +731,7 @@ export default function Story() {
         ideaPlayer,
         choirPlayer,
         replaySound,
+        stopAllSounds,
     ]);
 
     const portalRotation = portalRotate.interpolate({
@@ -699,8 +745,19 @@ export default function Story() {
     });
 
     const handleSkip = () => {
-        replaySound(popPlayer);
-        router.push("/(tabs)/Home");
+        stopAllSounds();
+
+        try {
+            popPlayer.seekTo(0);
+            popPlayer.play();
+        } catch (error) {
+            console.warn("Pop sound failed:", error);
+        }
+
+        setTimeout(() => {
+            stopAllSounds();
+            router.replace("/Home");
+        }, 180);
     };
 
     return (
@@ -1005,17 +1062,6 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
 
-    gridButtonLocked: {
-        backgroundColor: "#d9d4cf",
-        borderColor: "#8a817c",
-    },
-
-    gridButtonNew: {
-        backgroundColor: "#8CF0B5",
-        borderColor: "#0C5B40",
-        shadowOpacity: 0.22,
-    },
-
     gridButtonPressed: {
         transform: [{ scale: 0.97 }],
         opacity: 0.94,
@@ -1099,10 +1145,6 @@ const styles = StyleSheet.create({
 
     cardBubbleLime: {
         backgroundColor: "#D9F99D",
-    },
-
-    cardBubbleGray: {
-        backgroundColor: "#E7E5E4",
     },
 
     bubbleOne: {
