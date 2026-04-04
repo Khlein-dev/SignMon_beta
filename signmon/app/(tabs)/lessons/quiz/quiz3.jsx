@@ -20,7 +20,7 @@ const EXP_REWARD = 100;
 const LETTERS = ["P", "Q", "R", "S"];
 const API_URL = "http://10.28.29.160:8000/detect-sign/quiz3";
 
-const DETECTION_INTERVAL = 50;
+const DETECTION_INTERVAL = 250;
 const ROUND_TIME = 60;
 const READY_COUNTDOWN = 5;
 const WIN_SCORE = 8;
