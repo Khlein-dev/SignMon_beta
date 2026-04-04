@@ -20,7 +20,7 @@ const EXP_REWARD = 100;
 const NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 const API_URL = "http://192.168.100.5:8000/detect-sign/quiz5";
 
-const DETECTION_INTERVAL = 100;
+const DETECTION_INTERVAL = 250;
 const ROUND_TIME = 90;
 const READY_COUNTDOWN = 5;
 const WIN_SCORE = 10;
