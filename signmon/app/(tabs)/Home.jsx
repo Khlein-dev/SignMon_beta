@@ -26,7 +26,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function Home() {
     const [openPanel, setOpenPanel] = useState(null);
-    // const [user, setUser] = useState(null);
     const [hat, setHat] = useState(null);
     const [dress, setDress] = useState(null);
     const [necklace, setNecklace] = useState(null);
@@ -44,10 +43,16 @@ export default function Home() {
 
     const bgSoundRef = useRef(null);
     const popSoundRef = useRef(null);
-    const isStartingBgRef = useRef(false);
+
+    const isMountedRef = useRef(true);
+    const isFocusedRef = useRef(false);
+    const isPreparingAudioRef = useRef(false);
+    const isPopPlayingRef = useRef(false);
 
     useEffect(() => {
-        const loadSavedVolumes = async () => {
+        isMountedRef.current = true;
+
+        const init = async () => {
             try {
                 const savedMusic = await AsyncStorage.getItem("musicVolume");
                 const savedSfx = await AsyncStorage.getItem("sfxVolume");
@@ -63,34 +68,160 @@ export default function Home() {
                     setSfxVolume(value);
                     sfxVolumeRef.current = value;
                 }
+
+                await Audio.setAudioModeAsync({
+                    allowsRecordingIOS: false,
+                    playsInSilentModeIOS: true,
+                    staysActiveInBackground: false,
+                    shouldDuckAndroid: true,
+                    playThroughEarpieceAndroid: false,
+                    interruptionModeIOS: 1,
+                    interruptionModeAndroid: 1,
+                });
+
+                await prepareAudio();
             } catch (error) {
-                console.log("Error loading saved volume settings:", error);
+                console.log("Error initializing audio:", error);
             }
         };
 
-        loadSavedVolumes();
+        init();
 
         return () => {
-            if (bgSoundRef.current) {
-                bgSoundRef.current.unloadAsync();
-                bgSoundRef.current = null;
-            }
+            isMountedRef.current = false;
 
-            if (popSoundRef.current) {
-                popSoundRef.current.unloadAsync();
-                popSoundRef.current = null;
-            }
+            const cleanup = async () => {
+                try {
+                    if (bgSoundRef.current) {
+                        await bgSoundRef.current.stopAsync();
+                        await bgSoundRef.current.unloadAsync();
+                        bgSoundRef.current = null;
+                    }
+
+                    if (popSoundRef.current) {
+                        await popSoundRef.current.stopAsync();
+                        await popSoundRef.current.unloadAsync();
+                        popSoundRef.current = null;
+                    }
+                } catch (error) {
+                    console.log("Error cleaning audio:", error);
+                }
+            };
+
+            cleanup();
         };
     }, []);
 
+    const prepareAudio = useCallback(async () => {
+        try {
+            if (isPreparingAudioRef.current) return;
+            isPreparingAudioRef.current = true;
+
+            if (!bgSoundRef.current) {
+                const { sound } = await Audio.Sound.createAsync(
+                    require("../../assets/images/audio/mainTheme.mp3"),
+                    {
+                        shouldPlay: false,
+                        isLooping: true,
+                        volume: musicVolumeRef.current,
+                    }
+                );
+                bgSoundRef.current = sound;
+            }
+
+            if (!popSoundRef.current) {
+                const { sound } = await Audio.Sound.createAsync(
+                    require("../../assets/images/audio/pop.mp3"),
+                    {
+                        shouldPlay: false,
+                        isLooping: false,
+                        volume: sfxVolumeRef.current,
+                    }
+                );
+                popSoundRef.current = sound;
+            }
+        } catch (error) {
+            console.log("Error preparing audio:", error);
+        } finally {
+            isPreparingAudioRef.current = false;
+        }
+    }, []);
+
+    const playBackgroundMusic = useCallback(async () => {
+        try {
+            await prepareAudio();
+
+            if (!bgSoundRef.current) return;
+
+            const status = await bgSoundRef.current.getStatusAsync();
+
+            if (!status.isLoaded) return;
+
+            await bgSoundRef.current.setVolumeAsync(musicVolumeRef.current);
+
+            if (!status.isPlaying) {
+                await bgSoundRef.current.playAsync();
+            }
+        } catch (error) {
+            console.log("Error playing background music:", error);
+        }
+    }, [prepareAudio]);
+
+    const pauseBackgroundMusic = useCallback(async () => {
+        try {
+            if (!bgSoundRef.current) return;
+
+            const status = await bgSoundRef.current.getStatusAsync();
+
+            if (status.isLoaded && status.isPlaying) {
+                await bgSoundRef.current.pauseAsync();
+            }
+        } catch (error) {
+            console.log("Error pausing background music:", error);
+        }
+    }, []);
+
+    const playPopSound = useCallback(async () => {
+        try {
+            await prepareAudio();
+
+            if (!popSoundRef.current || isPopPlayingRef.current) return;
+
+            const status = await popSoundRef.current.getStatusAsync();
+            if (!status.isLoaded) return;
+
+            isPopPlayingRef.current = true;
+
+            await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
+
+            if (status.isPlaying) {
+                await popSoundRef.current.stopAsync();
+            }
+
+            await popSoundRef.current.setPositionAsync(0);
+            await popSoundRef.current.playAsync();
+
+            setTimeout(() => {
+                isPopPlayingRef.current = false;
+            }, 140);
+        } catch (error) {
+            isPopPlayingRef.current = false;
+            console.log("Error playing pop sound:", error);
+        }
+    }, [prepareAudio]);
+
     useEffect(() => {
         musicVolumeRef.current = musicVolume;
-        AsyncStorage.setItem("musicVolume", String(musicVolume));
 
         const updateMusicVolume = async () => {
             try {
+                await AsyncStorage.setItem("musicVolume", String(musicVolume));
+
                 if (bgSoundRef.current) {
-                    await bgSoundRef.current.setVolumeAsync(musicVolume);
+                    const status = await bgSoundRef.current.getStatusAsync();
+                    if (status.isLoaded) {
+                        await bgSoundRef.current.setVolumeAsync(musicVolume);
+                    }
                 }
             } catch (error) {
                 console.log("Error updating music volume:", error);
@@ -102,12 +233,16 @@ export default function Home() {
 
     useEffect(() => {
         sfxVolumeRef.current = sfxVolume;
-        AsyncStorage.setItem("sfxVolume", String(sfxVolume));
 
         const updateSfxVolume = async () => {
             try {
+                await AsyncStorage.setItem("sfxVolume", String(sfxVolume));
+
                 if (popSoundRef.current) {
-                    await popSoundRef.current.setVolumeAsync(sfxVolume);
+                    const status = await popSoundRef.current.getStatusAsync();
+                    if (status.isLoaded) {
+                        await popSoundRef.current.setVolumeAsync(sfxVolume);
+                    }
                 }
             } catch (error) {
                 console.log("Error updating sfx volume:", error);
@@ -117,37 +252,22 @@ export default function Home() {
         updateSfxVolume();
     }, [sfxVolume]);
 
-   
-   useFocusEffect(
-    useCallback(() => {
-        
-        // const loadUser = async () => {
-        //     try {
-        //         const storedUser = await AsyncStorage.getItem("user");
-        //         const xp = await AsyncStorage.getItem("xp");
-        //         const level = await AsyncStorage.getItem("level");
+    useFocusEffect(
+        useCallback(() => {
+            isFocusedRef.current = true;
 
-        //         if (storedUser) {
-        //             const parsedUser = JSON.parse(storedUser);
+            const onFocus = async () => {
+                await playBackgroundMusic();
+            };
 
-        //             const updatedUser = {
-        //                 ...parsedUser,
-        //                 xp: Number(xp) || 0,
-        //                 level: Number(level) || 1,
-        //             };
+            onFocus();
 
-        //             console.log("UPDATED USER:", updatedUser);
-
-        //             setUser(updatedUser);
-        //         }
-        //     } catch (error) {
-        //         console.log("Error loading user:", error);
-        //     }
-        // };
-
-        // loadUser();
-    }, [])
-);
+            return () => {
+                isFocusedRef.current = false;
+                pauseBackgroundMusic();
+            };
+        }, [playBackgroundMusic, pauseBackgroundMusic])
+    );
 
     const closePanels = () => {
         setOpenPanel(null);
@@ -178,84 +298,6 @@ export default function Home() {
             useNativeDriver: true,
         }).start();
     };
-
-    const stopBackgroundMusic = useCallback(async () => {
-        try {
-            if (bgSoundRef.current) {
-                const sound = bgSoundRef.current;
-                bgSoundRef.current = null;
-                await sound.stopAsync();
-                await sound.unloadAsync();
-            }
-        } catch (error) {
-            console.log("Error stopping background music:", error);
-        }
-    }, []);
-
-    const playBackgroundMusic = useCallback(async () => {
-        try {
-            if (bgSoundRef.current || isStartingBgRef.current) {
-                return;
-            }
-
-            isStartingBgRef.current = true;
-
-            await Audio.setAudioModeAsync({
-                playsInSilentModeIOS: true,
-                staysActiveInBackground: false,
-                shouldDuckAndroid: true,
-            });
-
-            const { sound } = await Audio.Sound.createAsync(
-                require("../../assets/images/audio/mainTheme.mp3"),
-                {
-                    shouldPlay: true,
-                    isLooping: true,
-                    volume: musicVolumeRef.current,
-                }
-            );
-
-            if (bgSoundRef.current) {
-                await sound.unloadAsync();
-            } else {
-                bgSoundRef.current = sound;
-            }
-        } catch (error) {
-            console.log("Error loading background music:", error);
-        } finally {
-            isStartingBgRef.current = false;
-        }
-    }, []);
-
-    const playPopSound = useCallback(async () => {
-        try {
-            if (!popSoundRef.current) {
-                const { sound } = await Audio.Sound.createAsync(
-                    require("../../assets/images/audio/pop.mp3"),
-                    {
-                        shouldPlay: false,
-                        volume: sfxVolumeRef.current,
-                    }
-                );
-
-                popSoundRef.current = sound;
-            }
-
-            await popSoundRef.current.setVolumeAsync(sfxVolumeRef.current);
-            await popSoundRef.current.replayAsync();
-        } catch (error) {
-            console.log("Error playing pop sound:", error);
-        }
-    }, []);
-
-    useFocusEffect(
-        useCallback(() => {
-            playBackgroundMusic();
-            return () => {
-                stopBackgroundMusic();
-            };
-        }, [playBackgroundMusic, stopBackgroundMusic])
-    );
 
     const openLeftPanel = async () => {
         await playPopSound();
@@ -307,7 +349,6 @@ export default function Home() {
         await playPopSound();
         await clearProgress();
         await AsyncStorage.clear();
-        // setUser(null);
         setDress(null);
         setHat(null);
         setNecklace(null);
@@ -338,17 +379,12 @@ export default function Home() {
             <Stats />
 
             <View style={styles.usernameCard}>
-                <Text style={styles.username}>
-                    {/* {user ? user.name : ""} */}
-                    Player
-            </Text>
+                <Text style={styles.username}>Player</Text>
             </View>
-            
+
             <View style={styles.mascotContainer}>
                 <Pet hat={hat} dress={dress} necklace={necklace} />
             </View>
-
-            
 
             <Animated.View
                 style={[
@@ -443,7 +479,6 @@ export default function Home() {
                             setDress={setDress}
                             setNecklace={setNecklace}
                             onPlaySfx={playPopSound}
-
                         />
                     </View>
                 </View>
@@ -671,24 +706,27 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-usernameCard: {
-    position: "absolute",
-    top: 240, 
-    alignSelf: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    usernameCard: {
+        position: "absolute",
+        top: 240,
+        alignSelf: "center",
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        borderWidth: 2,
+        borderColor: "rgba(255,255,255,0.2)",
+        zIndex: 10,
+    },
 
-    backgroundColor: "rgba(0, 0, 0, 0.35)", 
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
+    username: {
+        fontSize: 40,
+        fontFamily: "HeyComic",
+        color: "#fff4c2",
+    },
 
-    zIndex: 10,
-},
-
-username: {
-    fontSize: 40,
-    fontFamily: "HeyComic",
-    color: "#fff4c2",
-},
+    mascotContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
 });
