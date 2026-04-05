@@ -5,45 +5,66 @@ import {
     StyleSheet,
     TouchableOpacity,
     SafeAreaView,
+    ActivityIndicator,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { useEventListener } from "expo";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Audio } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Lesson2() {
-    const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
+    const [currentIndex, setCurrentIndex] = useState(-1);
+    const [isVideoReady, setIsVideoReady] = useState(false);
+    const [videoError, setVideoError] = useState("");
+    const [isSlowMode, setIsSlowMode] = useState(false);
+    const [isSwitchingVideo, setIsSwitchingVideo] = useState(false);
 
     const lessonVideos = useMemo(
         () => [
             {
                 letter: "H",
-                source: require("../../../assets/images/videos/A-N/H.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FH.mp4?alt=media&token=b72e3818-53fa-4cfc-a574-45f94b842640",
+                },
             },
             {
                 letter: "I",
-                source: require("../../../assets/images/videos/A-N/I.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FI.mp4?alt=media&token=10193866-bb90-4bb3-a39b-edb89e6c96f9",
+                },
             },
             {
                 letter: "J",
-                source: require("../../../assets/images/videos/A-N/J.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FJ.mp4?alt=media&token=e03d6806-d491-406a-8e31-dfaf08c3b7f0",
+                },
             },
             {
                 letter: "K",
-                source: require("../../../assets/images/videos/A-N/K.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FK.mp4?alt=media&token=1b035fd6-5992-44b5-a569-0d04b17847c4",
+                },
             },
             {
                 letter: "L",
-                source: require("../../../assets/images/videos/A-N/L.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FL.mp4?alt=media&token=611063db-98ae-4257-8528-2641d8125dd5",
+                },
             },
             {
                 letter: "M",
-                source: require("../../../assets/images/videos/A-N/M.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FM.mp4?alt=media&token=6b5dcf62-e39f-44f2-88f1-772236b0a044",
+                },
             },
             {
                 letter: "N",
-                source: require("../../../assets/images/videos/A-N/N.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/LETTERS%2FN.mp4?alt=media&token=aacbbaf1-6ba5-45e6-8058-acd261dc385b",
+                },
             },
         ],
         []
@@ -52,39 +73,68 @@ export default function Lesson2() {
     const player = useVideoPlayer(null, (playerInstance) => {
         playerInstance.loop = false;
         playerInstance.muted = true;
+        playerInstance.playbackRate = 1.0;
+        playerInstance.preservesPitch = true;
     });
 
     const popSoundRef = useRef(null);
     const bgSoundRef = useRef(null);
     const isStartingBgRef = useRef(false);
+    const loadRequestRef = useRef(0);
 
     const musicVolumeRef = useRef(0.12);
     const sfxVolumeRef = useRef(0.45);
 
-    // Keeps lesson theme quiet even when music slider is maxed
     const LESSON_THEME_CAP = 0.2;
+
+    const isIntro = currentIndex === -1;
+    const isLastVideo = currentIndex === lessonVideos.length - 1;
+
+    useEventListener(player, "statusChange", ({ status, error }) => {
+        if (status === "readyToPlay") {
+            setIsVideoReady(true);
+            setVideoError("");
+            setIsSwitchingVideo(false);
+
+            try {
+                player.play();
+            } catch (playError) {
+                console.log("Autoplay error:", playError);
+            }
+            return;
+        }
+
+        if (status === "loading") {
+            setIsVideoReady(false);
+            return;
+        }
+
+        if (status === "error") {
+            setIsVideoReady(false);
+            setIsSwitchingVideo(false);
+            setVideoError(error?.message || "Hindi ma-load ang video. Pindutin ang ulitin button.");
+        }
+    });
 
     useEffect(() => {
         return () => {
-            if (popSoundRef.current) {
-                popSoundRef.current.unloadAsync();
-                popSoundRef.current = null;
-            }
+            void (async () => {
+                try {
+                    if (popSoundRef.current) {
+                        await popSoundRef.current.unloadAsync();
+                        popSoundRef.current = null;
+                    }
 
-            if (bgSoundRef.current) {
-                bgSoundRef.current.unloadAsync();
-                bgSoundRef.current = null;
-            }
+                    if (bgSoundRef.current) {
+                        await bgSoundRef.current.unloadAsync();
+                        bgSoundRef.current = null;
+                    }
+                } catch (error) {
+                    console.log("Audio cleanup error:", error);
+                }
+            })();
         };
     }, []);
-
-    useEffect(() => {
-        if (currentIndex >= 0 && currentIndex < lessonVideos.length) {
-            player.replace(lessonVideos[currentIndex].source);
-            player.muted = true;
-            player.play();
-        }
-    }, [currentIndex, lessonVideos, player]);
 
     const loadSavedAudioSettings = useCallback(async () => {
         try {
@@ -213,11 +263,11 @@ export default function Lesson2() {
                 }
             };
 
-            startAudio();
+            void startAudio();
 
             return () => {
                 active = false;
-                stopBackgroundMusic();
+                void stopBackgroundMusic();
             };
         }, [
             ensurePopLoaded,
@@ -227,21 +277,93 @@ export default function Lesson2() {
         ])
     );
 
-    const isIntro = currentIndex === -1;
-    const isLastVideo = currentIndex === lessonVideos.length - 1;
+    const loadCurrentVideo = useCallback(
+        async (index) => {
+            if (index < 0 || index >= lessonVideos.length) return;
+
+            const requestId = ++loadRequestRef.current;
+            const currentVideo = lessonVideos[index];
+
+            if (!currentVideo?.source?.uri) {
+                setVideoError("Walang video source para sa lesson na ito.");
+                setIsVideoReady(false);
+                setIsSwitchingVideo(false);
+                return;
+            }
+
+            try {
+                setIsSwitchingVideo(true);
+                setIsVideoReady(false);
+                setVideoError("");
+
+                player.pause();
+                player.currentTime = 0;
+                player.muted = true;
+                player.playbackRate = isSlowMode ? 0.5 : 1.0;
+
+                await player.replaceAsync(currentVideo.source);
+
+                if (requestId !== loadRequestRef.current) return;
+            } catch (error) {
+                if (requestId !== loadRequestRef.current) return;
+
+                console.log("Video load error:", error);
+                setIsSwitchingVideo(false);
+                setIsVideoReady(false);
+                setVideoError("Hindi ma-load ang video. Pindutin ang ulitin button.");
+            }
+        },
+        [isSlowMode, lessonVideos, player]
+    );
+
+    useEffect(() => {
+        if (isIntro) return;
+        void loadCurrentVideo(currentIndex);
+    }, [currentIndex, isIntro, loadCurrentVideo]);
+
+    useEffect(() => {
+        if (isIntro) return;
+
+        try {
+            player.playbackRate = isSlowMode ? 0.5 : 1.0;
+        } catch (error) {
+            console.log("Playback rate update error:", error);
+        }
+    }, [isIntro, isSlowMode, player]);
 
     const handleReplay = async () => {
         await playPop();
 
-        if (!isIntro) {
+        if (isIntro) return;
+
+        try {
+            if (videoError) {
+                await loadCurrentVideo(currentIndex);
+                return;
+            }
+
+            if (player.duration && player.currentTime >= player.duration) {
+                player.replay();
+                return;
+            }
+
             player.currentTime = 0;
-            player.muted = true;
             player.play();
+        } catch (error) {
+            console.log("Replay error:", error);
+            setVideoError("Hindi ma-play ang video. Pindutin ulit ang ulitin button.");
         }
+    };
+
+    const handleSlowToggle = async () => {
+        await playPop();
+        setIsSlowMode((prev) => !prev);
     };
 
     const handleNext = async () => {
         await playPop();
+
+        if (isSwitchingVideo) return;
 
         if (isIntro) {
             setCurrentIndex(0);
@@ -255,6 +377,8 @@ export default function Lesson2() {
 
     const handlePrevious = async () => {
         await playPop();
+
+        if (isSwitchingVideo) return;
 
         if (currentIndex === 0) {
             setCurrentIndex(-1);
@@ -304,13 +428,12 @@ export default function Lesson2() {
                     <Text style={styles.introHeading}>FSL Alpabeto (H–N)</Text>
 
                     <Text style={styles.introText}>
-                        Sa araling ito, matututuhan mo ang mga senyas ng alpabeto mula H
-                        hanggang N sa FSL.
+                        Sa araling ito, matututuhan mo ang mga senyas ng alpabeto mula H hanggang N sa FSL.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Bawat video ay nagpapakita ng isang titik. Pindutin ang Susunod
-                        para sa kasunod na letra o Ulitin para mapanood muli ang senyas.
+                        Bawat video ay nagpapakita ng isang titik. Pindutin ang Susunod para sa kasunod na
+                        letra o Ulitin para mapanood muli ang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
@@ -339,6 +462,13 @@ export default function Lesson2() {
                     </View>
 
                     <View style={styles.videoCard}>
+                        {(isSwitchingVideo || (!isVideoReady && !videoError)) && (
+                            <View style={styles.loaderOverlay}>
+                                <ActivityIndicator size="large" color="#ffffff" />
+                                <Text style={styles.loaderText}>Nilo-load ang video...</Text>
+                            </View>
+                        )}
+
                         <VideoView
                             key={lessonVideos[currentIndex].letter}
                             style={styles.video}
@@ -346,14 +476,40 @@ export default function Lesson2() {
                             contentFit="contain"
                             allowsFullscreen={false}
                             allowsPictureInPicture={false}
+                            nativeControls={false}
                         />
+
+                        {videoError ? (
+                            <View style={styles.errorOverlay}>
+                                <Ionicons name="alert-circle" size={42} color="#ffffff" />
+                                <Text style={styles.loaderText}>{videoError}</Text>
+                            </View>
+                        ) : null}
+
+                        <TouchableOpacity
+                            style={[
+                                styles.turtleButton,
+                                isSlowMode && styles.turtleButtonActive,
+                            ]}
+                            onPress={handleSlowToggle}
+                            activeOpacity={0.85}
+                        >
+                            <MaterialCommunityIcons name="snail" size={24} color="white" />
+                            <Text style={styles.turtleButtonText}>
+                                {isSlowMode ? "Mabagal" : "Bagalan"}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.buttonRow}>
                         <TouchableOpacity
-                            style={styles.previousButton}
+                            style={[
+                                styles.previousButton,
+                                isSwitchingVideo && styles.disabledButton,
+                            ]}
                             onPress={handlePrevious}
                             activeOpacity={0.8}
+                            disabled={isSwitchingVideo}
                         >
                             <Ionicons name="arrow-back" size={22} color="white" />
                             <Text style={styles.buttonText}>Nakaraan</Text>
@@ -361,9 +517,13 @@ export default function Lesson2() {
 
                         {!isLastVideo ? (
                             <TouchableOpacity
-                                style={styles.nextButton}
+                                style={[
+                                    styles.nextButton,
+                                    isSwitchingVideo && styles.disabledButton,
+                                ]}
                                 onPress={handleNext}
                                 activeOpacity={0.8}
+                                disabled={isSwitchingVideo}
                             >
                                 <Text style={styles.buttonText}>Susunod</Text>
                                 <Ionicons name="arrow-forward" size={22} color="white" />
@@ -521,10 +681,68 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         overflow: "hidden",
         marginBottom: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
     },
 
     video: {
-        flex: 1,
+        width: "100%",
+        height: "100%",
+    },
+
+    loaderOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 2,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        backgroundColor: "rgba(16, 58, 115, 0.45)",
+    },
+
+    errorOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 3,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+    },
+
+    loaderText: {
+        marginTop: 12,
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontFamily: "HeyComic",
+        textAlign: "center",
+    },
+
+    turtleButton: {
+        position: "absolute",
+        bottom: 14,
+        right: 14,
+        zIndex: 4,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#4B7BEC",
+        borderRadius: 16,
+        borderWidth: 3,
+        borderColor: "#17356E",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 6,
+    },
+
+    turtleButtonActive: {
+        backgroundColor: "#22B07D",
+        borderColor: "#0C5B40",
+    },
+
+    turtleButtonText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        fontFamily: "HeyComic",
     },
 
     buttonRow: {
@@ -597,6 +815,10 @@ const styles = StyleSheet.create({
         borderColor: "#0C5B40",
         paddingVertical: 16,
         gap: 8,
+    },
+
+    disabledButton: {
+        opacity: 0.6,
     },
 
     buttonText: {
