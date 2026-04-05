@@ -29,31 +29,45 @@ const QUIZ_THEME_CAP = 0.16;
 const DAY_BANK = [
     {
         answer: "Linggo",
-        source: require("../../../../assets/images/videos/Araw/Linggo.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FLinggo.mp4?alt=media&token=74f97341-9fae-4736-acfe-7bf3af39542f",
+        },
     },
     {
         answer: "Lunes",
-        source: require("../../../../assets/images/videos/Araw/Lunes.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FLunes.mp4?alt=media&token=a6cac54f-ebdc-4e56-ab68-0de88fccbdeb",
+        },
     },
     {
         answer: "Martes",
-        source: require("../../../../assets/images/videos/Araw/Martes.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FMartes.mp4?alt=media&token=b5a12d7d-a57f-4e42-85ab-de7e66a61327",
+        },
     },
     {
         answer: "Miyerkules",
-        source: require("../../../../assets/images/videos/Araw/Miyerkules.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FMiyerkules.mp4?alt=media&token=65cc7b44-f6b8-4a11-9679-0d51cb57bba3",
+        },
     },
     {
         answer: "Huwebes",
-        source: require("../../../../assets/images/videos/Araw/Huwebes.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FHuwebes.mp4?alt=media&token=c5b37ccf-df3d-42de-8bcd-2e0e458ee844",
+        },
     },
     {
         answer: "Biyernes",
-        source: require("../../../../assets/images/videos/Araw/Biyernes.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FBiyernes.mp4?alt=media&token=3bb3400a-fae0-4f92-8bc7-5d293e220448",
+        },
     },
     {
         answer: "Sabado",
-        source: require("../../../../assets/images/videos/Araw/Sabado.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/DAYS%2FSabado.mp4?alt=media&token=18fc0396-e911-4994-9ef5-321a78c45d68",
+        },
     },
 ];
 
@@ -90,12 +104,20 @@ export default function Quiz8() {
     });
 
     useEffect(() => {
-        if (currentQuestion?.source) {
-            player.replace(currentQuestion.source);
-            player.muted = true;
-            player.loop = true;
-            player.play();
-        }
+        const updateVideo = async () => {
+            if (!currentQuestion?.source) return;
+
+            try {
+                await player.replaceAsync(currentQuestion.source);
+                player.muted = true;
+                player.loop = true;
+                player.play();
+            } catch (error) {
+                console.log("Failed to load quiz video:", error);
+            }
+        };
+
+        void updateVideo();
     }, [currentQuestion, player]);
 
     useEffect(() => {
@@ -291,12 +313,12 @@ export default function Quiz8() {
                 }
             };
 
-            startScreenAudio();
+            void startScreenAudio();
 
             return () => {
                 active = false;
-                stopBackgroundMusic();
-                stopSoundIfPlaying(correctSoundRef);
+                void stopBackgroundMusic();
+                void stopSoundIfPlaying(correctSoundRef);
             };
         }, [
             ensureSfxLoaded,
@@ -357,9 +379,9 @@ export default function Quiz8() {
 
     useEffect(() => {
         return () => {
-            unloadSoundRef(popSoundRef);
-            unloadSoundRef(correctSoundRef);
-            unloadSoundRef(bgSoundRef);
+            void unloadSoundRef(popSoundRef);
+            void unloadSoundRef(correctSoundRef);
+            void unloadSoundRef(bgSoundRef);
         };
     }, [unloadSoundRef]);
 
@@ -421,7 +443,7 @@ export default function Quiz8() {
 
             if (isCorrect) {
                 setScore(nextScore);
-                playCorrect();
+                void playCorrect();
             }
 
             setTimeout(async () => {
@@ -717,6 +739,7 @@ function shuffleArray(array) {
 
     return copy;
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

@@ -29,27 +29,39 @@ const QUIZ_THEME_CAP = 0.16;
 const FAMILY_BANK = [
     {
         answer: "Tatay",
-        source: require("../../../../assets/images/videos/Pamilya/TATAY.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/PAMILYA%2FTATAY.mp4?alt=media&token=52aa350e-0e95-414b-b82f-a13f0fc96bd8",
+        },
     },
     {
         answer: "Nanay",
-        source: require("../../../../assets/images/videos/Pamilya/NANAY.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/PAMILYA%2FNANAY.mp4?alt=media&token=cbd2a81c-3bfc-4bfa-ac54-b1c3c39849d4",
+        },
     },
     {
         answer: "Kuya",
-        source: require("../../../../assets/images/videos/Pamilya/KUYA.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/PAMILYA%2FKUYA.mp4?alt=media&token=fa31d39c-d192-4058-b874-7e7110557b71",
+        },
     },
     {
         answer: "Ate",
-        source: require("../../../../assets/images/videos/Pamilya/ATE.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/PAMILYA%2FATE.mp4?alt=media&token=5ac77bf8-55fd-4d92-8ac1-d9759fcfbb6d",
+        },
     },
     {
         answer: "Bunso",
-        source: require("../../../../assets/images/videos/Pamilya/BABY.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/PAMILYA%2FBABY.mp4?alt=media&token=da94bff0-55f4-4d2c-a31d-c4ea701f781c",
+        },
     },
     {
         answer: "Pamilya",
-        source: require("../../../../assets/images/videos/Pamilya/PAMILYA.mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/PAMILYA%2FPAMILYA.mp4?alt=media&token=7a7f083d-711c-44b8-8d83-d9f03a7d0cbd",
+        },
     },
 ];
 
@@ -86,12 +98,20 @@ export default function Quiz7() {
     });
 
     useEffect(() => {
-        if (currentQuestion?.source) {
-            player.replace(currentQuestion.source);
-            player.muted = true;
-            player.loop = true;
-            player.play();
-        }
+        const updateVideo = async () => {
+            if (!currentQuestion?.source) return;
+
+            try {
+                await player.replaceAsync(currentQuestion.source);
+                player.muted = true;
+                player.loop = true;
+                player.play();
+            } catch (error) {
+                console.log("Failed to load quiz video:", error);
+            }
+        };
+
+        void updateVideo();
     }, [currentQuestion, player]);
 
     useEffect(() => {
@@ -287,12 +307,12 @@ export default function Quiz7() {
                 }
             };
 
-            startScreenAudio();
+            void startScreenAudio();
 
             return () => {
                 active = false;
-                stopBackgroundMusic();
-                stopSoundIfPlaying(correctSoundRef);
+                void stopBackgroundMusic();
+                void stopSoundIfPlaying(correctSoundRef);
             };
         }, [
             ensureSfxLoaded,
@@ -339,9 +359,9 @@ export default function Quiz7() {
 
     useEffect(() => {
         return () => {
-            unloadSoundRef(popSoundRef);
-            unloadSoundRef(correctSoundRef);
-            unloadSoundRef(bgSoundRef);
+            void unloadSoundRef(popSoundRef);
+            void unloadSoundRef(correctSoundRef);
+            void unloadSoundRef(bgSoundRef);
         };
     }, [unloadSoundRef]);
 
@@ -416,7 +436,7 @@ export default function Quiz7() {
 
             if (isCorrect) {
                 setScore(nextScore);
-                playCorrect();
+                void playCorrect();
             }
 
             setTimeout(async () => {
@@ -874,7 +894,7 @@ const styles = StyleSheet.create({
 
     videoCard: {
         width: "100%",
-        height: 230,
+        height: 200,
         backgroundColor: "#103A73",
         borderRadius: 24,
         borderWidth: 4,

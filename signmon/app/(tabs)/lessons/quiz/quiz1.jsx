@@ -17,13 +17,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 
 const EXP_REWARD = 100;
-const LETTERS = ["A", "B", "C", "D", "F"];
-const API_URL = "http://192.168.100.5:8000/detect-sign/quiz1";
+const LETTERS = ["A", "B", "C", "D", "E", "F", "G"];
+const API_URL = "http://172.20.10.2:8000/detect-sign/quiz1";
 
 const DETECTION_INTERVAL = 250;
 const ROUND_TIME = 60;
 const READY_COUNTDOWN = 5;
-const WIN_SCORE = 8;
+const WIN_SCORE = 10;
 
 const QUIZ_FINISHED_KEY = "quiz1Finished";
 const REVIEW_ROUTE = "/lessons/lesson1";
@@ -999,7 +999,7 @@ const rewardUser = async () => {
                         ) : (
                             <>
  
-                                <Text style={styles.modalTitle}>Try Again</Text>
+                                <Text style={styles.modalTitle}>Subukan Ulit</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} point{score === 1 ? "" : "s"}.
                                 </Text>

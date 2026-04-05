@@ -17,10 +17,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 
 const EXP_REWARD = 100;
-const LETTERS = ["H", "I", "L", "M"];
-const API_URL = "http://10.28.29.160:8000/detect-sign/quiz2";
+const LETTERS = ["H", "I", "J", "K", "L", "M", "N"];
+const API_URL = "http://172.20.10.2:8000/detect-sign/quiz2";
 
-const DETECTION_INTERVAL = 250;
+const DETECTION_INTERVAL = 300;
 const ROUND_TIME = 60;
 const READY_COUNTDOWN = 5;
 const WIN_SCORE = 8;
@@ -31,6 +31,11 @@ const REVIEW_ROUTE = "/lessons/lesson2";
 const HOME_ROUTE = "/Home";
 
 const QUIZ_THEME_CAP = 0.16;
+const J_SEQUENCE_WINDOW = 6;
+
+function createSessionId() {
+    return `quiz2_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export default function Quiz2Screen() {
     const cameraRef = useRef(null);
@@ -49,6 +54,9 @@ export default function Quiz2Screen() {
     const musicVolumeRef = useRef(0.12);
     const sfxVolumeRef = useRef(0.45);
 
+    const jHistoryRef = useRef([]);
+    const detectionSessionRef = useRef(createSessionId());
+
     const [permission, requestPermission] = useCameraPermissions();
     const [cameraReady, setCameraReady] = useState(false);
 
@@ -60,6 +68,7 @@ export default function Quiz2Screen() {
     const [isChecking, setIsChecking] = useState(false);
     const [score, setScore] = useState(0);
     const [answeredCorrectly, setAnsweredCorrectly] = useState(false);
+    const [jHintActive, setJHintActive] = useState(false);
 
     const [timeLeft, setTimeLeft] = useState(ROUND_TIME);
     const [countdown, setCountdown] = useState(READY_COUNTDOWN);
@@ -94,6 +103,32 @@ export default function Quiz2Screen() {
             nextRoundTimeoutRef.current = null;
         }
     }, []);
+
+    const resetJTracking = useCallback(() => {
+        jHistoryRef.current = [];
+        setJHintActive(false);
+        detectionSessionRef.current = createSessionId();
+    }, []);
+
+    const pushJHistory = useCallback((letter) => {
+        if (!letter) return;
+
+        const next = [...jHistoryRef.current, letter].slice(-J_SEQUENCE_WINDOW);
+        jHistoryRef.current = next;
+    }, []);
+
+    const shouldAcceptJ = useCallback((predicted) => {
+        pushJHistory(predicted);
+
+        const history = jHistoryRef.current;
+        const hasRecentI = history.includes("I");
+        const endsWithJ = history[history.length - 1] === "J";
+        const recentIJ =
+            history.length >= 2 &&
+            history.slice(-2).join(",") === "I,J";
+
+        return predicted === "J" || recentIJ || (hasRecentI && endsWithJ);
+    }, [pushJHistory]);
 
     const stopSoundIfPlaying = useCallback(async (soundRef) => {
         try {
@@ -419,9 +454,12 @@ export default function Quiz2Screen() {
         setResult(null);
         setErrorMessage("");
         setAnsweredCorrectly(false);
+        setJHintActive(false);
+        resetJTracking();
+
         const next = getRandomLetter(current);
         setTargetLetter(next);
-    }, []);
+    }, [resetJTracking]);
 
     const resetWholeGame = useCallback(() => {
         clearAllTimers();
@@ -436,8 +474,10 @@ export default function Quiz2Screen() {
         setShowResultModal(false);
         setShowCountdownModal(false);
         setGameStarted(false);
+        setJHintActive(false);
+        resetJTracking();
         setTargetLetter(getRandomLetter());
-    }, [clearAllTimers]);
+    }, [clearAllTimers, resetJTracking]);
 
     const markQuizAsFinished = useCallback(async () => {
         try {
@@ -452,55 +492,54 @@ export default function Quiz2Screen() {
         }
     }, []);
 
-const rewardUser = async () => {
-    try {
-        const userId = await AsyncStorage.getItem("userId");
+    const rewardUser = async () => {
+        try {
+            const userId = await AsyncStorage.getItem("userId");
 
-        if (!userId) {
-            console.log("❌ No userId found!");
-            return;
+            if (!userId) {
+                console.log("❌ No userId found!");
+                return;
+            }
+
+            console.log("✅ Sending userId:", userId);
+
+            const res = await fetch("http://192.168.100.5:5000/complete-lesson", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    userId: Number(userId),
+                    lessonId: "quiz2",
+                }),
+            });
+
+            const data = await res.json();
+
+            console.log("✅ SERVER RESPONSE:", data);
+
+            await AsyncStorage.setItem("user", JSON.stringify(data.user));
+            await AsyncStorage.setItem("xp", data.user.xp.toString());
+            await AsyncStorage.setItem("level", data.user.level.toString());
+        } catch (err) {
+            console.log("❌ rewardUser error:", err);
         }
-
-        console.log("✅ Sending userId:", userId);
-
-        const res = await fetch("http://192.168.100.5:5000/complete-lesson", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                userId: Number(userId),
-                lessonId: "quiz2",
-            }),
-        });
-
-        const data = await res.json();
-
-        console.log("✅ SERVER RESPONSE:", data);
-
-        await AsyncStorage.setItem("user", JSON.stringify(data.user));
-        await AsyncStorage.setItem("xp", data.user.xp.toString());
-        await AsyncStorage.setItem("level", data.user.level.toString());
-
-    } catch (err) {
-        console.log("❌ rewardUser error:", err);
-    }
-};
+    };
 
     const finishGame = useCallback(
-    async (won) => {
-        clearAllTimers();
-        setGameStarted(false);
-        setDidWin(won);
+        async (won) => {
+            clearAllTimers();
+            setGameStarted(false);
+            setDidWin(won);
 
-        if (won) {
-            await markQuizAsFinished();
+            if (won) {
+                await markQuizAsFinished();
 
-            await rewardUser();
+                await rewardUser();
 
-            await AsyncStorage.setItem(
-                "pendingQuizReward",
-                JSON.stringify({
+                await AsyncStorage.setItem(
+                    "pendingQuizReward",
+                    JSON.stringify({
                         show: true,
                         title: "May bagong gantimpala!",
                         rewardSet: "jingleCosmetics",
@@ -620,10 +659,11 @@ const rewardUser = async () => {
         try {
             setIsChecking(true);
             setErrorMessage("");
+            setJHintActive(false);
 
             const photo = await cameraRef.current.takePictureAsync({
-                quality: 0.4,
-                skipProcessing: true,
+                quality: 0.5,
+                skipProcessing: false,
                 base64: false,
                 shutterSound: false,
             });
@@ -634,6 +674,8 @@ const rewardUser = async () => {
                 name: "sign.jpg",
                 type: "image/jpeg",
             });
+            formData.append("session_id", detectionSessionRef.current);
+            formData.append("target_letter", targetLetter);
 
             const response = await fetch(API_URL, {
                 method: "POST",
@@ -667,9 +709,62 @@ const rewardUser = async () => {
                 return;
             }
 
+            const isJTarget = targetLetter === "J";
+
+            if (isJTarget) {
+                pushJHistory(predicted);
+
+                if (predicted === "I") {
+                    setResult(null);
+                    setJHintActive(true);
+                    setErrorMessage("");
+                    animateFeedback();
+                    return;
+                }
+
+                if (shouldAcceptJ(predicted)) {
+                    setResult("correct");
+                    setAnsweredCorrectly(true);
+                    setJHintActive(false);
+                    animateFeedback();
+                    playCorrect();
+
+                    setScore((prev) => {
+                        const nextScore = prev + 1;
+
+                        if (nextScore >= WIN_SCORE) {
+                            setTimeout(() => finishGame(true), 250);
+                        }
+
+                        return nextScore;
+                    });
+
+                    if (nextRoundTimeoutRef.current) {
+                        clearTimeout(nextRoundTimeoutRef.current);
+                    }
+
+                    nextRoundTimeoutRef.current = setTimeout(() => {
+                        setDetectedLetter(null);
+                        setResult(null);
+                        setErrorMessage("");
+                        setAnsweredCorrectly(false);
+                        setJHintActive(false);
+                        resetJTracking();
+
+                        const next = getRandomLetter(targetLetter);
+                        setTargetLetter(next);
+                        animateTarget();
+                        nextRoundTimeoutRef.current = null;
+                    }, 700);
+
+                    return;
+                }
+            }
+
             if (predicted === targetLetter) {
                 setResult("correct");
                 setAnsweredCorrectly(true);
+                setJHintActive(false);
                 animateFeedback();
                 playCorrect();
 
@@ -692,6 +787,9 @@ const rewardUser = async () => {
                     setResult(null);
                     setErrorMessage("");
                     setAnsweredCorrectly(false);
+                    setJHintActive(false);
+                    resetJTracking();
+
                     const next = getRandomLetter(targetLetter);
                     setTargetLetter(next);
                     animateTarget();
@@ -699,12 +797,14 @@ const rewardUser = async () => {
                 }, 700);
             } else {
                 setResult("wrong");
+                setJHintActive(false);
                 animateFeedback();
             }
         } catch (error) {
             console.error("Detection error:", error);
             setResult("error");
             setErrorMessage("Could not connect to detector server.");
+            setJHintActive(false);
             animateFeedback();
         } finally {
             setIsChecking(false);
@@ -719,6 +819,9 @@ const rewardUser = async () => {
         animateFeedback,
         animateTarget,
         playCorrect,
+        pushJHistory,
+        shouldAcceptJ,
+        resetJTracking,
     ]);
 
     const handleDetectRef = useRef(handleDetect);
@@ -875,43 +978,29 @@ const rewardUser = async () => {
                 ]}
             >
                 {!gameStarted ? (
-                    <>
-
-                        <Text style={styles.feedbackText}>
-                            Pindutin ang OK para simulan ang challenge.
-                        </Text>
-                    </>
+                    <Text style={styles.feedbackText}>
+                        Pindutin ang OK para simulan ang challenge.
+                    </Text>
                 ) : isChecking ? (
-                    <>
-
-                        <Text style={styles.feedbackText}>Tinitingnan ang sign mo...</Text>
-                    </>
+                    <Text style={styles.feedbackText}>Tinitingnan ang sign mo...</Text>
                 ) : result === "correct" ? (
-                    <>
-
-                        <Text style={styles.correctText}>
-                            Correct! Detected: {detectedLetter}
-                        </Text>
-                    </>
+                    <Text style={styles.correctText}>
+                        Correct! Detected: {detectedLetter}
+                    </Text>
+                ) : jHintActive ? (
+                    <Text style={styles.hintText}>
+                        Good start — mukhang I. Igalaw pababa at pakurba para maging J.
+                    </Text>
                 ) : result === "wrong" ? (
-                    <>
-
-                        <Text style={styles.wrongText}>
-                            Wrong — Detected: {detectedLetter}
-                        </Text>
-                    </>
+                    <Text style={styles.wrongText}>
+                        Wrong — Detected: {detectedLetter}
+                    </Text>
                 ) : result === "error" ? (
-                    <>
-
-                        <Text style={styles.errorText}>{errorMessage}</Text>
-                    </>
+                    <Text style={styles.errorText}>{errorMessage}</Text>
                 ) : (
-                    <>
- 
-                        <Text style={styles.feedbackText}>
-                            Show the sign in front of the camera.
-                        </Text>
-                    </>
+                    <Text style={styles.feedbackText}>
+                        Show the sign in front of the camera.
+                    </Text>
                 )}
             </Animated.View>
 
@@ -991,7 +1080,7 @@ const rewardUser = async () => {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.modalTitle}>Try Again</Text>
+                                <Text style={styles.modalTitle}>Subukan Ulit</Text>
                                 <Text style={styles.modalText}>
                                     Naka-score ka ng {score} point{score === 1 ? "" : "s"}.
                                 </Text>
@@ -1294,6 +1383,13 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 18,
         color: "#B00020",
+        textAlign: "center",
+        fontFamily: "HeyComic",
+    },
+
+    hintText: {
+        fontSize: 18,
+        color: "#A15C00",
         textAlign: "center",
         fontFamily: "HeyComic",
     },

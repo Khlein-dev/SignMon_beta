@@ -29,57 +29,151 @@ const QUIZ_THEME_CAP = 0.16;
 const COLOR_BANK = [
     {
         answer: "Pula",
-        source: require("../../../../assets/images/videos/Kulay/Pula(Red).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FPula(Red).mp4?alt=media&token=8ba3c2c1-74f6-4d87-a97b-f9d1aaa4e1d2",
+        },
     },
     {
         answer: "Bughaw",
-        source: require("../../../../assets/images/videos/Kulay/Asul(Blue).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FAsul(Blue).mp4?alt=media&token=8cc35ed8-42ac-43bd-ac50-1232fa7db5a5",
+        },
     },
     {
         answer: "Dilaw",
-        source: require("../../../../assets/images/videos/Kulay/Dilaw(Yellow).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FDilaw(Yellow).mp4?alt=media&token=6565997c-1f9c-452b-8493-7e1d9f621a66",
+        },
     },
     {
         answer: "Berde",
-        source: require("../../../../assets/images/videos/Kulay/Berde(Green).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FBerde(Green).mp4?alt=media&token=6efb2ed6-ee8f-4039-8055-81f010905392",
+        },
     },
     {
         answer: "Kahel",
-        source: require("../../../../assets/images/videos/Kulay/Kahel(Orange).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FKahel(Orange).mp4?alt=media&token=5c8b33f8-06e7-41d0-9fb2-b2da5d877777",
+        },
     },
     {
         answer: "Lila",
-        source: require("../../../../assets/images/videos/Kulay/Lila(Violet).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FLila(Violet).mp4?alt=media&token=9827ad07-9c24-4d8e-aca2-af74ff90042e",
+        },
     },
     {
         answer: "Rosas",
-        source: require("../../../../assets/images/videos/Kulay/Rosas(Pink).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FRosas(Pink).mp4?alt=media&token=1f37db5e-5d84-4835-a60d-10930ac59920",
+        },
     },
     {
         answer: "Kayumanggi",
-        source: require("../../../../assets/images/videos/Kulay/Kayumanggi(Brown).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FKayumanggi(Brown).mp4?alt=media&token=dee79779-55e6-4069-917d-5d1134f781c9",
+        },
     },
     {
         answer: "Itim",
-        source: require("../../../../assets/images/videos/Kulay/Itim(Black).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FItim(Black).mp4?alt=media&token=d6e0f5aa-494e-4670-a4db-736ee06d8df8",
+        },
     },
     {
         answer: "Abo",
-        source: require("../../../../assets/images/videos/Kulay/Abo(Gray).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FAbo(Gray).mp4?alt=media&token=277c700c-d5fc-4ef5-9082-aa85f69748ca",
+        },
     },
     {
         answer: "Puti",
-        source: require("../../../../assets/images/videos/Kulay/Puti(White).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FPuti(White).mp4?alt=media&token=3ad62386-510e-4138-9a62-14ce7cfac20c",
+        },
     },
     {
         answer: "Ginto",
-        source: require("../../../../assets/images/videos/Kulay/Ginto(Gold).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FGinto(Gold).mp4?alt=media&token=14107db2-f986-40bd-a468-8b1eeca39e85",
+        },
     },
     {
         answer: "Pilak",
-        source: require("../../../../assets/images/videos/Kulay/Pilak(Silver).mp4"),
+        source: {
+            uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/COLORS%2FPilak(Silver).mp4?alt=media&token=cdcc90bc-ecfd-46fa-b0b9-ec29d8de74cc",
+        },
     },
 ];
+
+const CHOICE_COLOR_MAP = {
+    Pula: {
+        backgroundColor: "#EF4444",
+        borderColor: "#991B1B",
+        textColor: "#FFFFFF",
+    },
+    Bughaw: {
+        backgroundColor: "#3B82F6",
+        borderColor: "#1D4ED8",
+        textColor: "#FFFFFF",
+    },
+    Dilaw: {
+        backgroundColor: "#FACC15",
+        borderColor: "#A16207",
+        textColor: "#2F1B00",
+    },
+    Berde: {
+        backgroundColor: "#22C55E",
+        borderColor: "#166534",
+        textColor: "#FFFFFF",
+    },
+    Kahel: {
+        backgroundColor: "#F97316",
+        borderColor: "#9A3412",
+        textColor: "#FFFFFF",
+    },
+    Lila: {
+        backgroundColor: "#A855F7",
+        borderColor: "#6B21A8",
+        textColor: "#FFFFFF",
+    },
+    Rosas: {
+        backgroundColor: "#EC4899",
+        borderColor: "#9D174D",
+        textColor: "#FFFFFF",
+    },
+    Kayumanggi: {
+        backgroundColor: "#8B5E3C",
+        borderColor: "#5C4033",
+        textColor: "#FFFFFF",
+    },
+    Itim: {
+        backgroundColor: "#111111",
+        borderColor: "#000000",
+        textColor: "#FFFFFF",
+    },
+    Abo: {
+        backgroundColor: "#9CA3AF",
+        borderColor: "#6B7280",
+        textColor: "#2F1B00",
+    },
+    Puti: {
+        backgroundColor: "#FFFFFF",
+        borderColor: "#9CA3AF",
+        textColor: "#2F1B00",
+    },
+    Ginto: {
+        backgroundColor: "#D4AF37",
+        borderColor: "#8B6B16",
+        textColor: "#2F1B00",
+    },
+    Pilak: {
+        backgroundColor: "#C0C0C0",
+        borderColor: "#6B7280",
+        textColor: "#2F1B00",
+    },
+};
 
 export default function Quiz6() {
     const [questions, setQuestions] = useState(() => generateQuestions());
@@ -114,12 +208,20 @@ export default function Quiz6() {
     });
 
     useEffect(() => {
-        if (currentQuestion?.source) {
-            player.replace(currentQuestion.source);
-            player.muted = true;
-            player.loop = true;
-            player.play();
-        }
+        const updateVideo = async () => {
+            if (!currentQuestion?.source) return;
+
+            try {
+                await player.replaceAsync(currentQuestion.source);
+                player.muted = true;
+                player.loop = true;
+                player.play();
+            } catch (error) {
+                console.log("Failed to load quiz video:", error);
+            }
+        };
+
+        void updateVideo();
     }, [currentQuestion, player]);
 
     useEffect(() => {
@@ -315,12 +417,12 @@ export default function Quiz6() {
                 }
             };
 
-            startScreenAudio();
+            void startScreenAudio();
 
             return () => {
                 active = false;
-                stopBackgroundMusic();
-                stopSoundIfPlaying(correctSoundRef);
+                void stopBackgroundMusic();
+                void stopSoundIfPlaying(correctSoundRef);
             };
         }, [
             ensureSfxLoaded,
@@ -367,9 +469,9 @@ export default function Quiz6() {
 
     useEffect(() => {
         return () => {
-            unloadSoundRef(popSoundRef);
-            unloadSoundRef(correctSoundRef);
-            unloadSoundRef(bgSoundRef);
+            void unloadSoundRef(popSoundRef);
+            void unloadSoundRef(correctSoundRef);
+            void unloadSoundRef(bgSoundRef);
         };
     }, [unloadSoundRef]);
 
@@ -444,7 +546,7 @@ export default function Quiz6() {
 
             if (isCorrect) {
                 setScore(nextScore);
-                playCorrect();
+                void playCorrect();
             }
 
             setTimeout(async () => {
@@ -504,32 +606,54 @@ export default function Quiz6() {
         outputRange: ["0%", "100%"],
     });
 
+    const getBaseChoiceColors = (choice) => {
+        return (
+            CHOICE_COLOR_MAP[choice] || {
+                backgroundColor: "#6EC5FF",
+                borderColor: "#103A73",
+                textColor: "#FFFFFF",
+            }
+        );
+    };
+
     const getChoiceStyle = (choice) => {
-        if (!locked) return styles.choiceButton;
+        const baseColors = getBaseChoiceColors(choice);
+        const baseStyle = [
+            styles.choiceButton,
+            {
+                backgroundColor: baseColors.backgroundColor,
+                borderColor: baseColors.borderColor,
+            },
+        ];
+
+        if (!locked) return baseStyle;
 
         if (choice === currentQuestion.answer) {
-            return [styles.choiceButton, styles.choiceCorrect];
+            return [...baseStyle, styles.choiceCorrect];
         }
 
         if (choice === selectedChoice) {
-            return [styles.choiceButton, styles.choiceWrong];
+            return [...baseStyle, styles.choiceWrong];
         }
 
-        return [styles.choiceButton, styles.choiceDim];
+        return [...baseStyle, styles.choiceDim];
     };
 
     const getChoiceTextStyle = (choice) => {
-        if (!locked) return styles.choiceText;
+        const baseColors = getBaseChoiceColors(choice);
+        const baseStyle = [styles.choiceText, { color: baseColors.textColor }];
+
+        if (!locked) return baseStyle;
 
         if (choice === currentQuestion.answer) {
             return [styles.choiceText, styles.choiceTextDark];
         }
 
         if (choice === selectedChoice) {
-            return styles.choiceText;
+            return [styles.choiceText, { color: "#FFFFFF" }];
         }
 
-        return [styles.choiceText, styles.choiceTextDim];
+        return [...baseStyle, styles.choiceTextDim];
     };
 
     return (
@@ -542,7 +666,7 @@ export default function Quiz6() {
                     onPress={handleExit}
                     activeOpacity={0.8}
                 >
-                    <Ionicons name="close" size={24} color="white" />
+                    <Ionicons name="close" size={22} color="white" />
                 </TouchableOpacity>
             </View>
 
@@ -613,7 +737,9 @@ export default function Quiz6() {
                         onPress={() => handleChoice(choice)}
                         disabled={locked}
                     >
-                        <Text style={getChoiceTextStyle(choice)}>{choice}</Text>
+                        <Text style={getChoiceTextStyle(choice)} numberOfLines={2}>
+                            {choice}
+                        </Text>
                     </TouchableOpacity>
                 ))}
             </Animated.View>
@@ -751,32 +877,33 @@ function shuffleArray(array) {
 
     return copy;
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#FFEFC2",
-        paddingHorizontal: 20,
-        paddingTop: 20,
+        paddingHorizontal: 16,
+        paddingTop: 14,
     },
 
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginTop: 24,
-        marginBottom: 18,
+        marginTop: 18,
+        marginBottom: 12,
     },
 
     title: {
-        fontSize: 34,
+        fontSize: 28,
         color: "#2D2A8C",
         fontFamily: "HeyComic",
     },
 
     exitButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 18,
+        width: 46,
+        height: 46,
+        borderRadius: 16,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#FF6B6B",
@@ -786,29 +913,29 @@ const styles = StyleSheet.create({
 
     topRow: {
         flexDirection: "row",
-        gap: 12,
-        marginBottom: 12,
+        gap: 10,
+        marginBottom: 10,
     },
 
     scoreCard: {
         flex: 1,
         backgroundColor: "#FFBE55",
-        borderRadius: 24,
+        borderRadius: 20,
         borderWidth: 4,
         borderColor: "#5A3900",
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 14,
+        paddingVertical: 10,
     },
 
     scoreLabel: {
-        fontSize: 16,
+        fontSize: 14,
         color: "#4A2D00",
         fontFamily: "HeyComic",
     },
 
     scoreValue: {
-        fontSize: 30,
+        fontSize: 24,
         color: "#2F1B00",
         fontFamily: "HeyComic",
     },
@@ -816,56 +943,56 @@ const styles = StyleSheet.create({
     questionCard: {
         flex: 1,
         backgroundColor: "#FFFFFF",
-        borderRadius: 24,
+        borderRadius: 20,
         borderWidth: 4,
         borderColor: "#000000",
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 14,
+        paddingVertical: 10,
     },
 
     questionLabel: {
-        fontSize: 16,
+        fontSize: 14,
         color: "#5C3A00",
         fontFamily: "HeyComic",
     },
 
     questionValue: {
-        fontSize: 28,
+        fontSize: 22,
         color: "#2D2A8C",
         fontFamily: "HeyComic",
     },
 
     progressCard: {
         backgroundColor: "#FFFFFF",
-        borderRadius: 22,
+        borderRadius: 18,
         borderWidth: 4,
         borderColor: "#000000",
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        marginBottom: 14,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        marginBottom: 10,
     },
 
     progressHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginBottom: 8,
+        marginBottom: 6,
     },
 
     progressTitle: {
-        fontSize: 16,
+        fontSize: 14,
         color: "#4A2D00",
         fontFamily: "HeyComic",
     },
 
     progressTarget: {
-        fontSize: 16,
+        fontSize: 14,
         color: "#2D2A8C",
         fontFamily: "HeyComic",
     },
 
     progressTrack: {
-        height: 16,
+        height: 14,
         backgroundColor: "#FDE7B0",
         borderRadius: 999,
         overflow: "hidden",
@@ -881,33 +1008,33 @@ const styles = StyleSheet.create({
 
     quizCard: {
         backgroundColor: "#FFFFFF",
-        borderRadius: 30,
+        borderRadius: 24,
         borderWidth: 4,
         borderColor: "#000000",
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 20,
-        paddingHorizontal: 16,
-        marginBottom: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        marginBottom: 12,
     },
 
     quizLabel: {
-        fontSize: 22,
+        fontSize: 18,
         color: "#2D2A8C",
         fontFamily: "HeyComic",
         textAlign: "center",
-        marginBottom: 12,
+        marginBottom: 10,
     },
 
     videoCard: {
         width: "100%",
-        height: 230,
+        height: 280,
         backgroundColor: "#103A73",
-        borderRadius: 24,
+        borderRadius: 20,
         borderWidth: 4,
         borderColor: "#000000",
         overflow: "hidden",
-        marginBottom: 12,
+        marginBottom: 10,
     },
 
     video: {
@@ -915,7 +1042,7 @@ const styles = StyleSheet.create({
     },
 
     quizSubtext: {
-        fontSize: 17,
+        fontSize: 14,
         color: "#5C3A00",
         fontFamily: "HeyComic",
         textAlign: "center",
@@ -925,21 +1052,19 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        rowGap: 12,
-        marginBottom: 16,
+        rowGap: 10,
+        marginBottom: 12,
     },
 
     choiceButton: {
         width: "48%",
-        backgroundColor: "#6EC5FF",
-        borderRadius: 22,
+        borderRadius: 18,
         borderWidth: 4,
-        borderColor: "#103A73",
-        paddingVertical: 16,
-        paddingHorizontal: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
         alignItems: "center",
         justifyContent: "center",
-        minHeight: 78,
+        minHeight: 62,
     },
 
     choiceCorrect: {
@@ -953,12 +1078,11 @@ const styles = StyleSheet.create({
     },
 
     choiceDim: {
-        opacity: 0.55,
+        opacity: 0.5,
     },
 
     choiceText: {
-        color: "#FFFFFF",
-        fontSize: 22,
+        fontSize: 17,
         fontFamily: "HeyComic",
         textAlign: "center",
     },
@@ -968,41 +1092,7 @@ const styles = StyleSheet.create({
     },
 
     choiceTextDim: {
-        color: "#FFFFFF",
-    },
-
-    feedbackCard: {
-        minHeight: 90,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 24,
-        borderWidth: 4,
-        borderColor: "#000000",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        marginBottom: 18,
-    },
-
-    feedbackText: {
-        fontSize: 19,
-        color: "#3E2F1C",
-        textAlign: "center",
-        fontFamily: "HeyComic",
-    },
-
-    correctText: {
-        fontSize: 21,
-        color: "#138A36",
-        textAlign: "center",
-        fontFamily: "HeyComic",
-    },
-
-    wrongText: {
-        fontSize: 21,
-        color: "#D72638",
-        textAlign: "center",
-        fontFamily: "HeyComic",
+        opacity: 0.95,
     },
 
     modalBackdrop: {
@@ -1019,12 +1109,12 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         borderWidth: 4,
         borderColor: "#000000",
-        padding: 24,
+        padding: 22,
         alignItems: "center",
     },
 
     modalTitle: {
-        fontSize: 30,
+        fontSize: 26,
         color: "#2D2A8C",
         fontFamily: "HeyComic",
         marginBottom: 10,
@@ -1032,7 +1122,7 @@ const styles = StyleSheet.create({
     },
 
     modalText: {
-        fontSize: 19,
+        fontSize: 17,
         color: "#3E2F1C",
         fontFamily: "HeyComic",
         textAlign: "center",
@@ -1040,7 +1130,7 @@ const styles = StyleSheet.create({
     },
 
     modalSubText: {
-        fontSize: 16,
+        fontSize: 15,
         color: "#5C3A00",
         fontFamily: "HeyComic",
         textAlign: "center",
@@ -1048,75 +1138,75 @@ const styles = StyleSheet.create({
     },
 
     modalPrimaryButton: {
-        minWidth: 180,
+        minWidth: 170,
         backgroundColor: "#22B07D",
-        borderRadius: 20,
+        borderRadius: 18,
         borderWidth: 4,
         borderColor: "#0C5B40",
-        paddingVertical: 14,
-        paddingHorizontal: 28,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
         alignItems: "center",
     },
 
     modalPrimaryButtonText: {
         color: "#FFFFFF",
-        fontSize: 18,
+        fontSize: 17,
         fontFamily: "HeyComic",
     },
 
     modalButtonRow: {
         width: "100%",
         flexDirection: "row",
-        gap: 12,
-        marginBottom: 12,
+        gap: 10,
+        marginBottom: 10,
     },
 
     reviewButton: {
         flex: 1,
         backgroundColor: "#FFBE55",
-        borderRadius: 20,
+        borderRadius: 18,
         borderWidth: 4,
         borderColor: "#5A3900",
-        paddingVertical: 14,
+        paddingVertical: 12,
         alignItems: "center",
     },
 
     reviewButtonText: {
         color: "#2F1B00",
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: "HeyComic",
     },
 
     homeButton: {
         flex: 1,
         backgroundColor: "#FF6B6B",
-        borderRadius: 20,
+        borderRadius: 18,
         borderWidth: 4,
         borderColor: "#3A1A1A",
-        paddingVertical: 14,
+        paddingVertical: 12,
         alignItems: "center",
     },
 
     homeButtonText: {
         color: "#FFFFFF",
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: "HeyComic",
     },
 
     playAgainButton: {
-        minWidth: 180,
+        minWidth: 170,
         backgroundColor: "#8B5CF6",
-        borderRadius: 20,
+        borderRadius: 18,
         borderWidth: 4,
         borderColor: "#4C1D95",
-        paddingVertical: 14,
-        paddingHorizontal: 28,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
         alignItems: "center",
     },
 
     playAgainButtonText: {
         color: "#FFFFFF",
-        fontSize: 18,
+        fontSize: 17,
         fontFamily: "HeyComic",
     },
 });
