@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -63,6 +64,10 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
     const itemAnimations = useRef(
         Array.from({ length: 8 }, () => new Animated.Value(0))
     ).current;
+    const pressAnimations = useRef(
+        Array.from({ length: 8 }, () => new Animated.Value(1))
+    ).current;
+
     const modalScale = useRef(new Animated.Value(0.9)).current;
     const badgePulse = useRef(new Animated.Value(0)).current;
     const isClosingRef = useRef(false);
@@ -74,48 +79,80 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                 route: "/lessons/lesson1",
                 letters: "A, B, C, D, E, F, G",
                 icon: "school",
+                colors: ["#FFF3B0", "#FFD43B"],
+                base: "#D49E00",
+                accent: "#FF8FAB",
+                iconBg: "#FFE066",
             },
             {
                 label: "Alpabeto H–N",
                 route: "/lessons/lesson2",
                 letters: "H, I, J, K, L, M, N",
                 icon: "book",
+                colors: ["#FFD8A8", "#FF922B"],
+                base: "#C56A05",
+                accent: "#74C0FC",
+                iconBg: "#FFA94D",
             },
             {
                 label: "Alpabeto Ñ–S",
                 route: "/lessons/lesson3",
                 letters: "Ñ, Ng, O, P, Q, R, S",
                 icon: "library",
+                colors: ["#D0EBFF", "#74C0FC"],
+                base: "#2B7DBD",
+                accent: "#69DB7C",
+                iconBg: "#A5D8FF",
             },
             {
                 label: "Alpabeto T–Z",
                 route: "/lessons/lesson4",
                 letters: "T, U, V, W, X, Y, Z",
                 icon: "color-wand",
+                colors: ["#E5DBFF", "#B197FC"],
+                base: "#7353BA",
+                accent: "#FFD43B",
+                iconBg: "#D0BFFF",
             },
             {
                 label: "Mga Numero",
                 route: "/lessons/lesson5",
                 letters: "1, 2, 3, 4, 5...",
                 icon: "calculator",
+                colors: ["#C3FAE8", "#63E6BE"],
+                base: "#1E9E73",
+                accent: "#FF8787",
+                iconBg: "#96F2D7",
             },
             {
                 label: "Mga Kulay",
                 route: "/lessons/lesson6",
                 letters: "Pula, Asul, Dilaw...",
                 icon: "color-palette",
+                colors: ["#FFE3E3", "#FF8787"],
+                base: "#D9485F",
+                accent: "#B197FC",
+                iconBg: "#FFC9C9",
             },
             {
                 label: "Ang Aking Pamilya",
                 route: "/lessons/lesson7",
                 letters: "Nanay, Tatay, Kuya...",
                 icon: "people",
+                colors: ["#FFF3BF", "#FCC419"],
+                base: "#D18B00",
+                accent: "#74C0FC",
+                iconBg: "#FFE066",
             },
             {
                 label: "Anong Araw Na?",
                 route: "/lessons/lesson8",
                 letters: "Lunes hanggang Linggo",
                 icon: "calendar",
+                colors: ["#DCEEFF", "#4DABF7"],
+                base: "#1F78C1",
+                accent: "#63E6BE",
+                iconBg: "#A5D8FF",
             },
         ],
         []
@@ -143,6 +180,24 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
             console.log("Failed to play triple pop:", error);
         }
     }, [onPlaySfx]);
+
+    const animatePressIn = useCallback((index) => {
+        Animated.spring(pressAnimations[index], {
+            toValue: 0.94,
+            friction: 5,
+            tension: 220,
+            useNativeDriver: true,
+        }).start();
+    }, [pressAnimations]);
+
+    const animatePressOut = useCallback((index) => {
+        Animated.spring(pressAnimations[index], {
+            toValue: 1,
+            friction: 4,
+            tension: 220,
+            useNativeDriver: true,
+        }).start();
+    }, [pressAnimations]);
 
     const startBadgeAnimation = useCallback(() => {
         badgePulse.setValue(0);
@@ -232,10 +287,10 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
 
         menuItems.forEach((_, index) => {
             setTimeout(() => {
-                Animated.timing(itemAnimations[index], {
+                Animated.spring(itemAnimations[index], {
                     toValue: 1,
-                    duration: 320,
-                    easing: Easing.out(Easing.back(1.2)),
+                    friction: 6,
+                    tension: 140,
                     useNativeDriver: true,
                 }).start();
             }, index * 90);
@@ -332,7 +387,8 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
         }
     }, []);
 
-    const handlePressItem = async (route) => {
+    const handlePressItem = async (route, index) => {
+        animatePressOut(index);
         await playPop();
 
         if (isLoadingLocks) return;
@@ -368,12 +424,12 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
 
     const badgeScale = badgePulse.interpolate({
         inputRange: [0, 1],
-        outputRange: [1, 1.08],
+        outputRange: [1, 1.1],
     });
 
     const badgeRotate = badgePulse.interpolate({
         inputRange: [0, 1],
-        outputRange: ["0deg", "-4deg"],
+        outputRange: ["0deg", "-5deg"],
     });
 
     if (!isMounted) return null;
@@ -400,23 +456,23 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                 ]}
             >
                 <LinearGradient
-                    colors={["#2b6cb0", "#184a8c", "#0d2f5e"]}
+                    colors={["#7DD3FC", "#8CE99A", "#FFE066", "#FFD6E7"]}
+                    locations={[0, 0.38, 0.72, 1]}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={StyleSheet.absoluteFillObject}
                 />
 
-                <View style={styles.headerBubbleOne} />
-                <View style={styles.headerBubbleTwo} />
-                <View style={styles.headerBubbleThree} />
-                <View style={styles.headerBubbleFour} />
-
+                <View style={styles.cloudOne} />
+                <View style={styles.cloudTwo} />
+                <View style={styles.cloudThree} />
+                <View style={styles.sunGlow} />
                 <View style={styles.handle} />
 
                 <View style={styles.header}>
                     <View>
-                        <Text style={styles.title}>Aralin</Text>
-                        <Text style={styles.subtitle}>Piliin ang gustong lesson</Text>
+                        <Text style={styles.title}>Mapa ng Aralin</Text>
+                        <Text style={styles.subtitle}>Sundan ang masayang daan ng lessons</Text>
                     </View>
 
                     <Pressable
@@ -432,170 +488,196 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
 
                 {isLoadingLocks ? (
                     <View style={styles.loadingWrap}>
-                        <ActivityIndicator size="large" color="#fff4c2" />
-                        <Text style={styles.loadingText}>Inaayos ang mga lesson...</Text>
+                        <ActivityIndicator size="large" color="#124076" />
+                        <Text style={styles.loadingText}>Inaayos ang makulay na mapa...</Text>
                     </View>
                 ) : (
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
                     >
-                        <View style={styles.grid}>
+                        <View style={styles.mapContainer}>
+                            <View style={styles.pathRail} />
+
                             {menuItems.map((item, index) => {
-                                const translateY = itemAnimations[index].interpolate({
+                                const entranceTranslateY = itemAnimations[index].interpolate({
                                     inputRange: [0, 1],
-                                    outputRange: [24, 0],
+                                    outputRange: [30, 0],
                                 });
 
-                                const scale = itemAnimations[index].interpolate({
+                                const entranceScale = itemAnimations[index].interpolate({
                                     inputRange: [0, 1],
-                                    outputRange: [0.85, 1],
+                                    outputRange: [0.82, 1],
                                 });
+
+                                const pressScale = pressAnimations[index];
 
                                 const isUnlocked = unlockedMap[item.route] === true;
                                 const isLocked = !isUnlocked;
                                 const isNew = newlyUnlockedMap[item.route] === true;
+                                const isLeft = index % 2 === 0;
 
                                 return (
                                     <Animated.View
                                         key={item.route}
                                         style={[
-                                            styles.cardWrapper,
+                                            styles.stopWrap,
+                                            isLeft ? styles.stopLeft : styles.stopRight,
                                             {
                                                 opacity: itemAnimations[index],
-                                                transform: [{ translateY }, { scale }],
+                                                transform: [
+                                                    { translateY: entranceTranslateY },
+                                                    { scale: Animated.multiply(entranceScale, pressScale) },
+                                                ],
                                             },
                                         ]}
                                     >
-                                        <Pressable
-                                            onPress={() => handlePressItem(item.route)}
-                                            style={({ pressed }) => [
-                                                styles.gridButton,
-                                                isLocked && styles.gridButtonLocked,
-                                                isNew && styles.gridButtonNew,
-                                                pressed && styles.gridButtonPressed,
+                                        <View
+                                            style={[
+                                                styles.connector,
+                                                isLeft ? styles.connectorLeft : styles.connectorRight,
                                             ]}
+                                        />
+
+                                        <View
+                                            style={[
+                                                styles.ellipseBase,
+                                                {
+                                                    backgroundColor: isLocked ? "#A8A8A8" : item.base,
+                                                },
+                                            ]}
+                                        />
+
+                                        <Pressable
+                                            onPressIn={() => animatePressIn(index)}
+                                            onPressOut={() => animatePressOut(index)}
+                                            onPress={() => handlePressItem(item.route, index)}
+                                            style={styles.pressableArea}
                                         >
-                                            <View
-                                                style={[
-                                                    styles.cardBubble,
-                                                    styles.cardBubbleSmall,
-                                                    styles.cardBubbleBlue,
-                                                ]}
-                                            />
-                                            <View
-                                                style={[
-                                                    styles.cardBubble,
-                                                    styles.cardBubbleMedium,
-                                                    isNew
-                                                        ? styles.cardBubbleMint
-                                                        : styles.cardBubblePink,
-                                                ]}
-                                            />
-                                            <View
-                                                style={[
-                                                    styles.cardBubble,
-                                                    styles.cardBubbleLarge,
+                                            <LinearGradient
+                                                colors={
                                                     isLocked
-                                                        ? styles.cardBubbleGray
+                                                        ? ["#ECECEC", "#D9D9D9"]
                                                         : isNew
-                                                        ? styles.cardBubbleLime
-                                                        : styles.cardBubbleYellow,
-                                                ]}
-                                            />
-                                            <View
+                                                            ? ["#D8FFE5", "#8CF0B5"]
+                                                            : item.colors
+                                                }
+                                                start={{ x: 0.15, y: 0.05 }}
+                                                end={{ x: 0.85, y: 1 }}
                                                 style={[
-                                                    styles.cardBubble,
-                                                    styles.cardBubbleTiny,
-                                                    styles.cardBubblePurple,
+                                                    styles.ellipseCard,
+                                                    isLocked && styles.ellipseCardLocked,
+                                                    isNew && styles.ellipseCardNew,
                                                 ]}
-                                            />
+                                            >
+                                                <View style={styles.topGloss} />
+                                                <View style={styles.miniBubbleOne} />
+                                                <View style={styles.miniBubbleTwo} />
+                                                <View style={styles.miniBubbleThree} />
 
-                                            {isNew && (
-                                                <Animated.View
-                                                    style={[
-                                                        styles.newBadge,
-                                                        {
-                                                            transform: [
-                                                                { scale: badgeScale },
-                                                                { rotate: badgeRotate },
-                                                            ],
-                                                        },
-                                                    ]}
-                                                >
-                                                    <Ionicons
-                                                        name="sparkles"
-                                                        size={12}
-                                                        color="#ffffff"
-                                                        style={styles.newBadgeIcon}
-                                                    />
-                                                    <Text style={styles.newBadgeText}>Bago</Text>
-                                                </Animated.View>
-                                            )}
-
-                                            <View style={styles.lessonTopRow}>
-                                                <View
-                                                    style={[
-                                                        styles.lessonBadgePill,
-                                                        isLocked && styles.lessonBadgePillLocked,
-                                                        isNew && styles.lessonBadgePillNew,
-                                                    ]}
-                                                >
-                                                    <Text
+                                                {isNew && (
+                                                    <Animated.View
                                                         style={[
-                                                            styles.lessonBadge,
-                                                            isLocked && styles.lessonBadgeLocked,
-                                                            isNew && styles.lessonBadgeNewText,
+                                                            styles.newBadge,
+                                                            {
+                                                                transform: [
+                                                                    { scale: badgeScale },
+                                                                    { rotate: badgeRotate },
+                                                                ],
+                                                            },
                                                         ]}
                                                     >
-                                                        Lesson {index + 1}
-                                                    </Text>
+                                                        <Ionicons
+                                                            name="sparkles"
+                                                            size={13}
+                                                            color="#FFFFFF"
+                                                            style={styles.newBadgeIcon}
+                                                        />
+                                                        <Text style={styles.newBadgeText}>Bago</Text>
+                                                    </Animated.View>
+                                                )}
+
+                                                <View style={styles.cardTopRow}>
+                                                    <View
+                                                        style={[
+                                                            styles.lessonIndexPill,
+                                                            isLocked && styles.lessonIndexPillLocked,
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            style={[
+                                                                styles.lessonIndexText,
+                                                                isLocked && styles.lessonIndexTextLocked,
+                                                            ]}
+                                                        >
+                                                            Lesson {index + 1}
+                                                        </Text>
+                                                    </View>
+
+                                                    <View
+                                                        style={[
+                                                            styles.iconCircle,
+                                                            {
+                                                                backgroundColor: isLocked
+                                                                    ? "#F0F0F0"
+                                                                    : item.iconBg,
+                                                            },
+                                                            isLocked && styles.iconCircleLocked,
+                                                        ]}
+                                                    >
+                                                        <Ionicons
+                                                            name={isLocked ? "lock-closed" : item.icon}
+                                                            size={26}
+                                                            color={isLocked ? "#6B6B6B" : "#21435E"}
+                                                        />
+                                                    </View>
                                                 </View>
 
-                                                <View
+                                                <Text
                                                     style={[
-                                                        styles.iconCircle,
-                                                        isLocked && styles.iconCircleLocked,
-                                                        isNew && styles.iconCircleNew,
+                                                        styles.lessonTitle,
+                                                        isLocked && styles.lessonTitleLocked,
                                                     ]}
                                                 >
-                                                    <Ionicons
-                                                        name={isLocked ? "lock-closed" : item.icon}
-                                                        size={18}
-                                                        color={
-                                                            isLocked
-                                                                ? "#5b4b4b"
-                                                                : isNew
-                                                                ? "#0C5B40"
-                                                                : "#4a2d00"
-                                                        }
-                                                    />
+                                                    {item.label}
+                                                </Text>
+
+                                                <Text
+                                                    style={[
+                                                        styles.lessonSubtext,
+                                                        isLocked && styles.lessonSubtextLocked,
+                                                    ]}
+                                                >
+                                                    {item.letters}
+                                                </Text>
+
+                                                <View style={styles.footerRow}>
+                                                    <View
+                                                        style={[
+                                                            styles.playChip,
+                                                            isLocked && styles.playChipLocked,
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            style={[
+                                                                styles.playChipText,
+                                                                isLocked && styles.playChipTextLocked,
+                                                            ]}
+                                                        >
+                                                            {isLocked ? "Locked" : "Play"}
+                                                        </Text>
+                                                    </View>
                                                 </View>
-                                            </View>
-
-                                            <Text
-                                                style={[
-                                                    styles.gridButtonText,
-                                                    isLocked && styles.gridButtonTextLocked,
-                                                    isNew && styles.gridButtonTextNew,
-                                                ]}
-                                            >
-                                                {item.label}
-                                            </Text>
-
-                                            <Text
-                                                style={[
-                                                    styles.gridButtonSubtext,
-                                                    isLocked && styles.gridButtonSubtextLocked,
-                                                    isNew && styles.gridButtonSubtextNew,
-                                                ]}
-                                            >
-                                                {item.letters}
-                                            </Text>
+                                            </LinearGradient>
                                         </Pressable>
                                     </Animated.View>
                                 );
                             })}
+
+                            <View style={styles.finishWrap}>
+                                <MaterialIcons name="celebration" size={24} color="#21435E" />
+                                <Text style={styles.finishText}>Ang saya ng pag-aaral!</Text>
+                            </View>
                         </View>
                     </ScrollView>
                 )}
@@ -612,12 +694,12 @@ export default function BottomPanel({ visible, onClose, onPlaySfx }) {
                         ]}
                     >
                         <View style={styles.lockIconCircle}>
-                            <Ionicons name="lock-closed" size={34} color="#5a3900" />
+                            <Ionicons name="lock-closed" size={34} color="#5A3900" />
                         </View>
 
                         <Text style={styles.modalTitle}>Naka-lock pa</Text>
                         <Text style={styles.modalText}>
-                            Kailangan munang tapusin ang huling lesson upang mabuksan.
+                            Tapusin muna ang naunang lesson para mabuksan ang susunod na stop sa mapa.
                         </Text>
 
                         <TouchableOpacity
@@ -646,11 +728,11 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        top: 70,
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        borderColor: "#000000",
+        top: 55,
+        borderTopLeftRadius: 34,
+        borderTopRightRadius: 34,
         borderWidth: 4,
+        borderColor: "#24557A",
         overflow: "hidden",
         zIndex: 999,
         elevation: 999,
@@ -659,86 +741,86 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
 
-    headerBubbleOne: {
+    cloudOne: {
         position: "absolute",
-        top: -10,
-        right: 20,
-        width: 120,
-        height: 120,
+        top: 28,
+        left: 18,
+        width: 110,
+        height: 44,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "rgba(255,255,255,0.28)",
     },
 
-    headerBubbleTwo: {
+    cloudTwo: {
         position: "absolute",
-        top: 55,
-        left: -10,
-        width: 58,
-        height: 58,
+        top: 88,
+        right: 24,
+        width: 86,
+        height: 32,
         borderRadius: 999,
-        backgroundColor: "rgba(255,214,102,0.18)",
+        backgroundColor: "rgba(255,255,255,0.24)",
     },
 
-    headerBubbleThree: {
+    cloudThree: {
         position: "absolute",
-        top: 120,
-        right: 100,
-        width: 42,
-        height: 42,
+        top: 145,
+        left: 82,
+        width: 56,
+        height: 22,
         borderRadius: 999,
-        backgroundColor: "rgba(125,211,252,0.18)",
+        backgroundColor: "rgba(255,255,255,0.18)",
     },
 
-    headerBubbleFour: {
+    sunGlow: {
         position: "absolute",
-        top: 30,
-        right: 135,
-        width: 24,
-        height: 24,
+        top: -18,
+        right: -18,
+        width: 128,
+        height: 128,
         borderRadius: 999,
-        backgroundColor: "rgba(167,139,250,0.16)",
+        backgroundColor: "rgba(255, 214, 102, 0.28)",
     },
 
     handle: {
         alignSelf: "center",
-        width: 70,
+        width: 72,
         height: 8,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.55)",
+        backgroundColor: "rgba(255,255,255,0.65)",
         marginBottom: 14,
     },
 
     header: {
-        minHeight: 68,
-        marginBottom: 14,
+        minHeight: 80,
+        marginBottom: 8,
         flexDirection: "row",
         alignItems: "flex-start",
         justifyContent: "space-between",
     },
 
     title: {
-        color: "#fff4c2",
-        fontSize: 42,
+        color: "#124076",
+        fontSize: 40,
         fontFamily: "HeyComic",
-        lineHeight: 48,
+        lineHeight: 46,
     },
 
     subtitle: {
-        color: "#dbeafe",
-        fontSize: 16,
+        color: "#24557A",
+        fontSize: 17,
         fontFamily: "HeyComic",
-        marginTop: 2,
+        marginTop: 4,
     },
 
     closeButton: {
         width: 58,
         height: 58,
         borderRadius: 18,
-        backgroundColor: "#ff7b7b",
+        backgroundColor: "#FF7B7B",
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 4,
-        borderColor: "#3a1a1a",
+        borderColor: "#7A2E2E",
     },
 
     closeButtonPressed: {
@@ -746,7 +828,7 @@ const styles = StyleSheet.create({
     },
 
     closeButtonText: {
-        color: "#2b1111",
+        color: "#2B1111",
         fontSize: 28,
         fontFamily: "HeyComic",
     },
@@ -760,133 +842,178 @@ const styles = StyleSheet.create({
 
     loadingText: {
         marginTop: 12,
-        color: "#fff4c2",
-        fontSize: 18,
+        color: "#124076",
+        fontSize: 20,
         fontFamily: "HeyComic",
     },
 
     scrollContent: {
+        paddingTop: 10,
+        paddingBottom: 40,
+    },
+
+    mapContainer: {
+        position: "relative",
+        minHeight: 1180,
+        paddingTop: 4,
         paddingBottom: 30,
     },
 
-    grid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-        rowGap: 14,
-    },
-
-    cardWrapper: {
-        width: "48%",
-    },
-
-    gridButton: {
-        minHeight: 142,
-        backgroundColor: "#ffbe55",
-        justifyContent: "center",
-        borderRadius: 28,
-        borderColor: "#5a3900",
+    pathRail: {
+        position: "absolute",
+        top: 16,
+        bottom: 78,
+        left: "50%",
+        marginLeft: -11,
+        width: 22,
+        borderRadius: 999,
+        backgroundColor: "#FFF0A6",
         borderWidth: 4,
-        paddingVertical: 18,
-        paddingHorizontal: 14,
+        borderColor: "#A8792A",
+        borderStyle: "dashed",
+    },
+
+    stopWrap: {
+        position: "relative",
+        width: "82%",
+        marginBottom: 30,
+        overflow: "visible",
+        zIndex: 1,
+    },
+
+    stopLeft: {
+        alignSelf: "flex-start",
+    },
+
+    stopRight: {
+        alignSelf: "flex-end",
+    },
+
+    connector: {
+        position: "absolute",
+        top: 72,
+        width: 54,
+        height: 18,
+        backgroundColor: "#FFF0A6",
+        borderWidth: 4,
+        borderColor: "#A8792A",
+        borderRadius: 999,
+        zIndex: 0,
+    },
+
+    connectorLeft: {
+        right: -30,
+    },
+
+    connectorRight: {
+        left: -30,
+    },
+
+    pressableArea: {
+        position: "relative",
+        zIndex: 3,
+        overflow: "visible",
+    },
+
+    ellipseBase: {
+        position: "absolute",
+        left: 8,
+        right: 8,
+        bottom: -10,
+        height: 162,
+        borderRadius: 999,
+        zIndex: 1,
+        opacity: 0.95,
+    },
+
+    ellipseCard: {
+        minHeight: 162,
+        borderRadius: 999,
+        borderWidth: 4,
+        borderColor: "#2D5B83",
+        paddingTop: 18,
+        paddingBottom: 18,
+        paddingHorizontal: 20,
+        justifyContent: "center",
+        overflow: "visible",
+        zIndex: 2,
         shadowColor: "#000",
         shadowOpacity: 0.18,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        overflow: "hidden",
+        shadowRadius: 9,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 6,
     },
 
-    gridButtonLocked: {
-        backgroundColor: "#d9d4cf",
-        borderColor: "#8a817c",
+    ellipseCardLocked: {
+        borderColor: "#989898",
     },
 
-    gridButtonNew: {
-        backgroundColor: "#8CF0B5",
-        borderColor: "#0C5B40",
-        shadowOpacity: 0.22,
+    ellipseCardNew: {
+        borderColor: "#0C8B5A",
     },
 
-    gridButtonPressed: {
-        transform: [{ scale: 0.97 }],
-        opacity: 0.94,
-    },
-
-    cardBubble: {
+    topGloss: {
         position: "absolute",
+        top: 10,
+        left: 24,
+        right: 24,
+        height: 34,
         borderRadius: 999,
-        opacity: 0.33,
+        backgroundColor: "rgba(255,255,255,0.24)",
+        zIndex: 2,
     },
 
-    cardBubbleSmall: {
-        width: 38,
-        height: 38,
-        top: 12,
-        right: 12,
+    miniBubbleOne: {
+        position: "absolute",
+        top: 16,
+        right: 32,
+        width: 28,
+        height: 28,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.24)",
+        zIndex: 2,
     },
 
-    cardBubbleMedium: {
-        width: 56,
-        height: 56,
-        bottom: -8,
-        right: 14,
+    miniBubbleTwo: {
+        position: "absolute",
+        bottom: 18,
+        left: 20,
+        width: 18,
+        height: 18,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.22)",
+        zIndex: 2,
     },
 
-    cardBubbleLarge: {
-        width: 78,
-        height: 78,
-        top: 38,
-        left: -16,
-    },
-
-    cardBubbleTiny: {
-        width: 22,
-        height: 22,
-        top: 44,
-        right: 38,
-    },
-
-    cardBubbleBlue: {
-        backgroundColor: "#93C5FD",
-    },
-
-    cardBubblePink: {
-        backgroundColor: "#F9A8D4",
-    },
-
-    cardBubbleYellow: {
-        backgroundColor: "#FDE68A",
-    },
-
-    cardBubblePurple: {
-        backgroundColor: "#C4B5FD",
-    },
-
-    cardBubbleMint: {
-        backgroundColor: "#A7F3D0",
-    },
-
-    cardBubbleLime: {
-        backgroundColor: "#D9F99D",
-    },
-
-    cardBubbleGray: {
-        backgroundColor: "#E7E5E4",
+    miniBubbleThree: {
+        position: "absolute",
+        bottom: 16,
+        right: 52,
+        width: 46,
+        height: 18,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.2)",
+        zIndex: 2,
     },
 
     newBadge: {
         position: "absolute",
-        top: 10,
-        right: 10,
-        zIndex: 5,
+        top: 12,
+        right: 70,
+        zIndex: 9999,
+        elevation: 9999,
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#22B07D",
         borderWidth: 3,
         borderColor: "#0C5B40",
         borderRadius: 999,
-        paddingVertical: 5,
-        paddingHorizontal: 10,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
     },
 
     newBadgeIcon: {
@@ -895,106 +1022,135 @@ const styles = StyleSheet.create({
 
     newBadgeText: {
         color: "#FFFFFF",
-        fontSize: 12,
+        fontSize: 13,
         fontFamily: "HeyComic",
-        lineHeight: 14,
+        lineHeight: 16,
     },
 
-    lessonTopRow: {
+    cardTopRow: {
         width: "100%",
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 10,
-        zIndex: 2,
+        zIndex: 6,
     },
 
-    lessonBadgePill: {
-        backgroundColor: "rgba(255,247,218,0.72)",
+    lessonIndexPill: {
+        backgroundColor: "rgba(255,255,255,0.88)",
         borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
         borderWidth: 2,
-        borderColor: "rgba(90,57,0,0.28)",
+        borderColor: "rgba(45,91,131,0.2)",
+        zIndex: 5,
     },
 
-    lessonBadgePillLocked: {
-        backgroundColor: "rgba(255,255,255,0.5)",
-        borderColor: "rgba(91,75,75,0.25)",
-    },
-
-    lessonBadgePillNew: {
+    lessonIndexPillLocked: {
         backgroundColor: "rgba(255,255,255,0.72)",
-        borderColor: "rgba(12,91,64,0.18)",
+        borderColor: "rgba(120,120,120,0.2)",
     },
 
-    lessonBadge: {
-        color: "#4a2d00",
-        fontSize: 13,
+    lessonIndexText: {
+        color: "#21435E",
+        fontSize: 14,
         fontFamily: "HeyComic",
     },
 
-    lessonBadgeLocked: {
-        color: "#5b4b4b",
-    },
-
-    lessonBadgeNewText: {
-        color: "#0C5B40",
+    lessonIndexTextLocked: {
+        color: "#666666",
     },
 
     iconCircle: {
-        width: 34,
-        height: 34,
+        width: 48,
+        height: 48,
         borderRadius: 999,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,247,218,0.75)",
-        borderWidth: 2,
-        borderColor: "rgba(90,57,0,0.28)",
+        borderWidth: 3,
+        borderColor: "rgba(45,91,131,0.16)",
+        zIndex: 5,
     },
 
     iconCircleLocked: {
-        backgroundColor: "rgba(255,255,255,0.5)",
-        borderColor: "rgba(91,75,75,0.25)",
+        borderColor: "rgba(120,120,120,0.18)",
     },
 
-    iconCircleNew: {
-        backgroundColor: "rgba(255,255,255,0.72)",
-        borderColor: "rgba(12,91,64,0.2)",
-    },
-
-    gridButtonText: {
-        color: "#2f1b00",
-        fontSize: 23,
+    lessonTitle: {
+        color: "#16324F",
+        fontSize: 28,
         fontFamily: "HeyComic",
+        textAlign: "center",
+        marginBottom: 8,
+        paddingHorizontal: 20,
+        zIndex: 5,
+    },
+
+    lessonTitleLocked: {
+        color: "#5D5D5D",
+    },
+
+    lessonSubtext: {
+        color: "#355C7D",
+        fontSize: 15,
+        fontFamily: "HeyComic",
+        lineHeight: 20,
+        textAlign: "center",
+        paddingHorizontal: 18,
+        zIndex: 5,
+    },
+
+    lessonSubtextLocked: {
+        color: "#757575",
+    },
+
+    footerRow: {
+        marginTop: 14,
+        alignItems: "center",
+        zIndex: 5,
+    },
+
+    playChip: {
+        minWidth: 100,
+        borderRadius: 999,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 3,
+        borderColor: "#2D5B83",
+        paddingVertical: 8,
+        paddingHorizontal: 18,
+    },
+
+    playChipLocked: {
+        backgroundColor: "#F5F5F5",
+        borderColor: "#A0A0A0",
+    },
+
+    playChipText: {
+        color: "#21435E",
+        fontSize: 14,
+        fontFamily: "HeyComic",
+        textAlign: "center",
+    },
+
+    playChipTextLocked: {
+        color: "#7B7B7B",
+    },
+
+    finishWrap: {
+        marginTop: 6,
+        alignItems: "center",
+    },
+
+    finishEmoji: {
+        fontSize: 36,
         marginBottom: 6,
-        textAlign: "center",
-        zIndex: 2,
     },
 
-    gridButtonTextLocked: {
-        color: "#4f4a46",
-    },
-
-    gridButtonTextNew: {
-        color: "#084C35",
-    },
-
-    gridButtonSubtext: {
-        color: "#5c3a00",
-        fontSize: 13,
+    finishText: {
+        color: "#124076",
+        fontSize: 20,
         fontFamily: "HeyComic",
         textAlign: "center",
-        lineHeight: 18,
-        zIndex: 2,
-    },
-
-    gridButtonSubtextLocked: {
-        color: "#6b6460",
-    },
-
-    gridButtonSubtextNew: {
-        color: "#136149",
     },
 
     modalBackdrop: {
@@ -1007,10 +1163,10 @@ const styles = StyleSheet.create({
 
     modalCard: {
         width: "100%",
-        backgroundColor: "#fff7da",
+        backgroundColor: "#FFF7DA",
         borderRadius: 28,
         borderWidth: 4,
-        borderColor: "#5a3900",
+        borderColor: "#5A3900",
         padding: 24,
         alignItems: "center",
     },
@@ -1019,16 +1175,16 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 999,
-        backgroundColor: "#ffdf8a",
+        backgroundColor: "#FFDF8A",
         borderWidth: 4,
-        borderColor: "#5a3900",
+        borderColor: "#5A3900",
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 14,
     },
 
     modalTitle: {
-        color: "#2f1b00",
+        color: "#2F1B00",
         fontSize: 30,
         fontFamily: "HeyComic",
         textAlign: "center",
@@ -1036,7 +1192,7 @@ const styles = StyleSheet.create({
     },
 
     modalText: {
-        color: "#5c3a00",
+        color: "#5C3A00",
         fontSize: 18,
         fontFamily: "HeyComic",
         textAlign: "center",
