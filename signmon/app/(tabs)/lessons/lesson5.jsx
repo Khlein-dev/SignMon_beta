@@ -5,57 +5,84 @@ import {
     StyleSheet,
     TouchableOpacity,
     SafeAreaView,
+    ActivityIndicator,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { useEventListener } from "expo";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Audio } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Lesson5() {
-    const [currentIndex, setCurrentIndex] = useState(-1); // -1 = intro
+    const [currentIndex, setCurrentIndex] = useState(-1);
+    const [isVideoReady, setIsVideoReady] = useState(false);
+    const [videoError, setVideoError] = useState("");
+    const [isSlowMode, setIsSlowMode] = useState(false);
+    const [isSwitchingVideo, setIsSwitchingVideo] = useState(false);
 
     const lessonVideos = useMemo(
         () => [
             {
                 numero: "1",
-                source: require("../../../assets/images/videos/Numero/Isa.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FIsa.mp4?alt=media&token=94bec31d-d079-4ff0-9d06-cc424d905f26",
+                },
             },
             {
                 numero: "2",
-                source: require("../../../assets/images/videos/Numero/Dalawa.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FDalawa.mp4?alt=media&token=74c1054e-7663-43b6-8a9c-1a7dda432bc7",
+                },
             },
             {
                 numero: "3",
-                source: require("../../../assets/images/videos/Numero/Tatlo.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FTatlo.mp4?alt=media&token=bf610287-196b-4460-84fb-05ac34538c42",
+                },
             },
             {
                 numero: "4",
-                source: require("../../../assets/images/videos/Numero/Apat.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FApat.mp4?alt=media&token=c97305c1-2555-4cff-973e-0568bd07e9d6",
+                },
             },
             {
                 numero: "5",
-                source: require("../../../assets/images/videos/Numero/Lima.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FLima.mp4?alt=media&token=e74ce524-1905-4eb6-976f-ff5bd7110798",
+                },
             },
             {
                 numero: "6",
-                source: require("../../../assets/images/videos/Numero/Anim.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FAnim.mp4?alt=media&token=8461a532-1832-442e-8ebf-45b0cc938b1c",
+                },
             },
             {
                 numero: "7",
-                source: require("../../../assets/images/videos/Numero/Pito.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FPito.mp4?alt=media&token=1d40cef0-137e-4440-9e5f-8321c09497cb",
+                },
             },
             {
                 numero: "8",
-                source: require("../../../assets/images/videos/Numero/Walo.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FWalo.mp4?alt=media&token=2d8eb48f-2e06-4ba9-8d45-e225f1052b4a",
+                },
             },
             {
                 numero: "9",
-                source: require("../../../assets/images/videos/Numero/Siyam.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FSiyam.mp4?alt=media&token=83b4d5f0-3c23-4fdd-893a-7c2175b11822",
+                },
             },
             {
                 numero: "10",
-                source: require("../../../assets/images/videos/Numero/Sampo.mp4"),
+                source: {
+                    uri: "https://firebasestorage.googleapis.com/v0/b/signmon-assets.firebasestorage.app/o/NUMBERS%2FSampo.mp4?alt=media&token=65a14e57-8f25-43dd-8a78-aef5248b146f",
+                },
             },
         ],
         []
@@ -64,38 +91,68 @@ export default function Lesson5() {
     const player = useVideoPlayer(null, (playerInstance) => {
         playerInstance.loop = false;
         playerInstance.muted = true;
+        playerInstance.playbackRate = 1.0;
+        playerInstance.preservesPitch = true;
     });
 
     const popSoundRef = useRef(null);
     const bgSoundRef = useRef(null);
     const isStartingBgRef = useRef(false);
+    const loadRequestRef = useRef(0);
 
     const musicVolumeRef = useRef(0.12);
     const sfxVolumeRef = useRef(0.45);
 
     const LESSON_THEME_CAP = 0.2;
 
+    const isIntro = currentIndex === -1;
+    const isLastVideo = currentIndex === lessonVideos.length - 1;
+
+    useEventListener(player, "statusChange", ({ status, error }) => {
+        if (status === "readyToPlay") {
+            setIsVideoReady(true);
+            setVideoError("");
+            setIsSwitchingVideo(false);
+
+            try {
+                player.play();
+            } catch (playError) {
+                console.log("Autoplay error:", playError);
+            }
+            return;
+        }
+
+        if (status === "loading") {
+            setIsVideoReady(false);
+            return;
+        }
+
+        if (status === "error") {
+            setIsVideoReady(false);
+            setIsSwitchingVideo(false);
+            setVideoError(error?.message || "Hindi ma-load ang video. Pindutin ang ulitin button.");
+        }
+    });
+
     useEffect(() => {
         return () => {
-            if (popSoundRef.current) {
-                popSoundRef.current.unloadAsync();
-                popSoundRef.current = null;
-            }
+            void (async () => {
+                try {
+                    if (popSoundRef.current) {
+                        await popSoundRef.current.unloadAsync();
+                        popSoundRef.current = null;
+                    }
 
-            if (bgSoundRef.current) {
-                bgSoundRef.current.unloadAsync();
-                bgSoundRef.current = null;
-            }
+                    if (bgSoundRef.current) {
+                        await bgSoundRef.current.unloadAsync();
+                        bgSoundRef.current = null;
+                    }
+                } catch (error) {
+                    console.log("Audio cleanup error:", error);
+                }
+            })();
         };
     }, []);
-
-    useEffect(() => {
-        if (currentIndex >= 0 && currentIndex < lessonVideos.length) {
-            player.replace(lessonVideos[currentIndex].source);
-            player.muted = true;
-            player.play();
-        }
-    }, [currentIndex, lessonVideos, player]);
 
     const loadSavedAudioSettings = useCallback(async () => {
         try {
@@ -224,11 +281,11 @@ export default function Lesson5() {
                 }
             };
 
-            startAudio();
+            void startAudio();
 
             return () => {
                 active = false;
-                stopBackgroundMusic();
+                void stopBackgroundMusic();
             };
         }, [
             ensurePopLoaded,
@@ -238,21 +295,93 @@ export default function Lesson5() {
         ])
     );
 
-    const isIntro = currentIndex === -1;
-    const isLastVideo = currentIndex === lessonVideos.length - 1;
+    const loadCurrentVideo = useCallback(
+        async (index) => {
+            if (index < 0 || index >= lessonVideos.length) return;
+
+            const requestId = ++loadRequestRef.current;
+            const currentVideo = lessonVideos[index];
+
+            if (!currentVideo?.source?.uri) {
+                setVideoError("Walang video source para sa lesson na ito.");
+                setIsVideoReady(false);
+                setIsSwitchingVideo(false);
+                return;
+            }
+
+            try {
+                setIsSwitchingVideo(true);
+                setIsVideoReady(false);
+                setVideoError("");
+
+                player.pause();
+                player.currentTime = 0;
+                player.muted = true;
+                player.playbackRate = isSlowMode ? 0.5 : 1.0;
+
+                await player.replaceAsync(currentVideo.source);
+
+                if (requestId !== loadRequestRef.current) return;
+            } catch (error) {
+                if (requestId !== loadRequestRef.current) return;
+
+                console.log("Video load error:", error);
+                setIsSwitchingVideo(false);
+                setIsVideoReady(false);
+                setVideoError("Hindi ma-load ang video. Pindutin ang ulitin button.");
+            }
+        },
+        [isSlowMode, lessonVideos, player]
+    );
+
+    useEffect(() => {
+        if (isIntro) return;
+        void loadCurrentVideo(currentIndex);
+    }, [currentIndex, isIntro, loadCurrentVideo]);
+
+    useEffect(() => {
+        if (isIntro) return;
+
+        try {
+            player.playbackRate = isSlowMode ? 0.5 : 1.0;
+        } catch (error) {
+            console.log("Playback rate update error:", error);
+        }
+    }, [isIntro, isSlowMode, player]);
 
     const handleReplay = async () => {
         await playPop();
 
-        if (!isIntro) {
+        if (isIntro) return;
+
+        try {
+            if (videoError) {
+                await loadCurrentVideo(currentIndex);
+                return;
+            }
+
+            if (player.duration && player.currentTime >= player.duration) {
+                player.replay();
+                return;
+            }
+
             player.currentTime = 0;
-            player.muted = true;
             player.play();
+        } catch (error) {
+            console.log("Replay error:", error);
+            setVideoError("Hindi ma-play ang video. Pindutin ulit ang ulitin button.");
         }
+    };
+
+    const handleSlowToggle = async () => {
+        await playPop();
+        setIsSlowMode((prev) => !prev);
     };
 
     const handleNext = async () => {
         await playPop();
+
+        if (isSwitchingVideo) return;
 
         if (isIntro) {
             setCurrentIndex(0);
@@ -266,6 +395,8 @@ export default function Lesson5() {
 
     const handlePrevious = async () => {
         await playPop();
+
+        if (isSwitchingVideo) return;
 
         if (currentIndex === 0) {
             setCurrentIndex(-1);
@@ -315,13 +446,12 @@ export default function Lesson5() {
                     <Text style={styles.introHeading}>FSL Numero (1–10)</Text>
 
                     <Text style={styles.introText}>
-                        Sa araling ito, matututuhan mo ang mga senyas para sa mga numero
-                        mula 1 hanggang 10.
+                        Sa araling ito, matututuhan mo ang mga senyas para sa mga numero mula 1 hanggang 10.
                     </Text>
 
                     <Text style={styles.introText}>
-                        Bawat video ay nagpapakita ng isang numero. Pindutin ang Susunod
-                        para sa kasunod na numero o Ulitin para mapanood muli ang senyas.
+                        Bawat video ay nagpapakita ng isang numero. Pindutin ang Susunod para sa kasunod na
+                        numero o Ulitin para mapanood muli ang senyas.
                     </Text>
 
                     <Text style={styles.introText}>
@@ -350,6 +480,13 @@ export default function Lesson5() {
                     </View>
 
                     <View style={styles.videoCard}>
+                        {(isSwitchingVideo || (!isVideoReady && !videoError)) && (
+                            <View style={styles.loaderOverlay}>
+                                <ActivityIndicator size="large" color="#ffffff" />
+                                <Text style={styles.loaderText}>Nilo-load ang video...</Text>
+                            </View>
+                        )}
+
                         <VideoView
                             key={lessonVideos[currentIndex].numero}
                             style={styles.video}
@@ -357,14 +494,40 @@ export default function Lesson5() {
                             contentFit="contain"
                             allowsFullscreen={false}
                             allowsPictureInPicture={false}
+                            nativeControls={false}
                         />
+
+                        {videoError ? (
+                            <View style={styles.errorOverlay}>
+                                <Ionicons name="alert-circle" size={42} color="#ffffff" />
+                                <Text style={styles.loaderText}>{videoError}</Text>
+                            </View>
+                        ) : null}
+
+                        <TouchableOpacity
+                            style={[
+                                styles.turtleButton,
+                                isSlowMode && styles.turtleButtonActive,
+                            ]}
+                            onPress={handleSlowToggle}
+                            activeOpacity={0.85}
+                        >
+                            <MaterialCommunityIcons name="snail" size={24} color="white" />
+                            <Text style={styles.turtleButtonText}>
+                                {isSlowMode ? "Mabagal" : "Bagalan"}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.buttonRow}>
                         <TouchableOpacity
-                            style={styles.previousButton}
+                            style={[
+                                styles.previousButton,
+                                isSwitchingVideo && styles.disabledButton,
+                            ]}
                             onPress={handlePrevious}
                             activeOpacity={0.8}
+                            disabled={isSwitchingVideo}
                         >
                             <Ionicons name="arrow-back" size={22} color="white" />
                             <Text style={styles.buttonText}>Nakaraan</Text>
@@ -372,9 +535,13 @@ export default function Lesson5() {
 
                         {!isLastVideo ? (
                             <TouchableOpacity
-                                style={styles.nextButton}
+                                style={[
+                                    styles.nextButton,
+                                    isSwitchingVideo && styles.disabledButton,
+                                ]}
                                 onPress={handleNext}
                                 activeOpacity={0.8}
+                                disabled={isSwitchingVideo}
                             >
                                 <Text style={styles.buttonText}>Susunod</Text>
                                 <Ionicons name="arrow-forward" size={22} color="white" />
@@ -532,10 +699,68 @@ const styles = StyleSheet.create({
         borderColor: "#000000",
         overflow: "hidden",
         marginBottom: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
     },
 
     video: {
-        flex: 1,
+        width: "100%",
+        height: "100%",
+    },
+
+    loaderOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 2,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        backgroundColor: "rgba(16, 58, 115, 0.45)",
+    },
+
+    errorOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 3,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+    },
+
+    loaderText: {
+        marginTop: 12,
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontFamily: "HeyComic",
+        textAlign: "center",
+    },
+
+    turtleButton: {
+        position: "absolute",
+        bottom: 14,
+        right: 14,
+        zIndex: 4,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#4B7BEC",
+        borderRadius: 16,
+        borderWidth: 3,
+        borderColor: "#17356E",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 6,
+    },
+
+    turtleButtonActive: {
+        backgroundColor: "#22B07D",
+        borderColor: "#0C5B40",
+    },
+
+    turtleButtonText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        fontFamily: "HeyComic",
     },
 
     buttonRow: {
@@ -608,6 +833,10 @@ const styles = StyleSheet.create({
         borderColor: "#0C5B40",
         paddingVertical: 16,
         gap: 8,
+    },
+
+    disabledButton: {
+        opacity: 0.6,
     },
 
     buttonText: {
