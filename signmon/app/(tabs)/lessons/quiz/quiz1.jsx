@@ -18,7 +18,7 @@ import { Audio } from "expo-av";
 
 const EXP_REWARD = 100;
 const LETTERS = ["A", "B", "C", "D", "E", "F", "G"];
-const API_URL = "http://172.20.10.2:8000/detect-sign/quiz1";
+const API_URL = "http://192.168.1.5:8000/detect-sign/quiz1";
 
 const DETECTION_INTERVAL = 250;
 const ROUND_TIME = 60;

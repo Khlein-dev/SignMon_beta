@@ -17,8 +17,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 
 const EXP_REWARD = 100;
-const LETTERS = ["H", "I", "J", "K", "L", "M", "N"];
-const API_URL = "http://172.20.10.2:8000/detect-sign/quiz2";
+const LETTERS = ["H", "I", "L", "M", "N"];
+const API_URL = "http://192.168.1.5:8000/detect-sign/quiz2";
 
 const DETECTION_INTERVAL = 300;
 const ROUND_TIME = 60;
